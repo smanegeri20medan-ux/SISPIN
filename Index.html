@@ -1,0 +1,3375 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SISPIN - Sistem Informasi Sekolah Pintar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+    <style>
+        body {
+            box-sizing: border-box;
+        }
+        .sidebar-transition {
+            transition: transform 0.3s ease-in-out;
+        }
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .kebiasaan-card {
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+        }
+        .modal-backdrop {
+            backdrop-filter: blur(4px);
+        }
+        .ticker-container {
+            overflow: hidden;
+            white-space: nowrap;
+            width: 100%;
+        }
+        .ticker-text {
+            display: inline-block;
+            animation: ticker 20s linear infinite;
+        }
+        @keyframes ticker {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div id="app">
+        <!-- Login Screen -->
+        <div id="loginScreen" class="min-h-screen flex items-center justify-center gradient-bg">
+            <div class="max-w-md w-full mx-4 p-8 bg-white rounded-2xl shadow-2xl">
+                <div class="text-center mb-8">
+                    <div class="w-20 h-20 mx-auto mb-4 bg-blue-600 rounded-full flex items-center justify-center">
+                        <i data-lucide="school" class="text-white w-8 h-8"></i>
+                    </div>
+                    <h1 class="text-3xl font-bold text-gray-800">SISPIN</h1>
+                    <p class="text-gray-600 mt-2">Sistem Informasi Sekolah Pintar</p>
+                    <p class="text-sm text-gray-500 mt-1">SMA Negeri 20 Medan</p>
+                </div>
+
+                <form id="loginForm" class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Role Pengguna</label>
+                        <select id="roleSelect" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="Admin">Admin</option>
+                            <option value="Kepala Sekolah">Kepala Sekolah</option>
+                            <option value="Guru">Guru</option>
+                            <option value="BK">Bimbingan Konseling (BK)</option>
+                            <option value="Siswa/Orang Tua">Siswa/Orang Tua</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                        <input type="email" id="emailInput" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Masukkan email Anda" required>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                        <input type="password" id="passwordInput" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Masukkan password Anda" required>
+                    </div>
+
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 transform hover:scale-105">
+                        Masuk ke SISPIN
+                    </button>
+                </form>
+
+                <div class="mt-6 text-center text-sm text-gray-500">
+                    <p>Demo Login - Gunakan email dan password apapun</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard -->
+        <div id="dashboard" class="hidden min-h-screen bg-gray-50">
+            <!-- Sidebar -->
+            <div id="sidebar" class="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform -translate-x-full lg:translate-x-0 sidebar-transition">
+                <div class="flex items-center justify-between p-6 border-b border-gray-200">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                            <i data-lucide="school" class="text-white w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-xl font-bold text-gray-800">SISPIN</h1>
+                            <p class="text-xs text-gray-500">Sekolah Pintar</p>
+                        </div>
+                    </div>
+                </div>
+
+                <nav class="mt-6">
+                    <button onclick="showPage('beranda')" class="menu-item w-full flex items-center px-6 py-3 text-left hover:bg-blue-50 transition-colors text-gray-700 hover:text-blue-600">
+                        <i data-lucide="home" class="w-5 h-5 mr-3"></i>
+                        <span class="text-sm font-medium">Beranda</span>
+                    </button>
+                    <button onclick="showPage('rpp')" class="menu-item w-full flex items-center px-6 py-3 text-left hover:bg-blue-50 transition-colors text-gray-700 hover:text-blue-600" style="display: none;">
+                        <i data-lucide="book-open" class="w-5 h-5 mr-3"></i>
+                        <span class="text-sm font-medium">Perencanaan Intrakurikuler</span>
+                    </button>
+                    <button onclick="showPage('kokurikuler')" class="menu-item w-full flex items-center px-6 py-3 text-left hover:bg-blue-50 transition-colors text-gray-700 hover:text-blue-600" style="display: none;">
+                        <i data-lucide="activity" class="w-5 h-5 mr-3"></i>
+                        <span class="text-sm font-medium">Perencanaan Kokurikuler</span>
+                    </button>
+                    <button onclick="showPage('wali')" class="menu-item w-full flex items-center px-6 py-3 text-left hover:bg-blue-50 transition-colors text-gray-700 hover:text-blue-600" style="display: none;">
+                        <i data-lucide="user-check" class="w-5 h-5 mr-3"></i>
+                        <span class="text-sm font-medium">Data Guru Wali</span>
+                    </button>
+                    <button onclick="showPage('jurnal')" class="menu-item w-full flex items-center px-6 py-3 text-left hover:bg-blue-50 transition-colors text-gray-700 hover:text-blue-600" style="display: none;">
+                        <i data-lucide="file-text" class="w-5 h-5 mr-3"></i>
+                        <span class="text-sm font-medium">Jurnal & Supervisi</span>
+                    </button>
+                    <button onclick="showPage('bimbingan')" class="menu-item w-full flex items-center px-6 py-3 text-left hover:bg-blue-50 transition-colors text-gray-700 hover:text-blue-600" style="display: none;">
+                        <i data-lucide="heart-handshake" class="w-5 h-5 mr-3"></i>
+                        <span class="text-sm font-medium">Bimbingan Konseling</span>
+                    </button>
+                    <button onclick="showPage('manajemen')" class="menu-item w-full flex items-center px-6 py-3 text-left hover:bg-blue-50 transition-colors text-gray-700 hover:text-blue-600" style="display: none;">
+                        <i data-lucide="users" class="w-5 h-5 mr-3"></i>
+                        <span class="text-sm font-medium">Manajemen Data</span>
+                    </button>
+                    <button onclick="showPage('approval')" class="menu-item w-full flex items-center px-6 py-3 text-left hover:bg-blue-50 transition-colors text-gray-700 hover:text-blue-600" style="display: none;">
+                        <i data-lucide="check-square" class="w-5 h-5 mr-3"></i>
+                        <span class="text-sm font-medium">Approval Pengajuan</span>
+                    </button>
+                </nav>
+
+                <div class="absolute bottom-0 w-full p-6 border-t border-gray-200">
+                    <div class="flex items-center space-x-3 mb-4 text-gray-700">
+                        <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                            <i data-lucide="user" class="text-white w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium" id="userName">Admin SISPIN</p>
+                            <p class="text-xs text-gray-500" id="userRole">Admin</p>
+                        </div>
+                    </div>
+                    <button onclick="logout()" class="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+                        <i data-lucide="log-out" class="w-4 h-4 mr-2"></i>
+                        Keluar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="lg:ml-64">
+                <!-- Header -->
+                <header class="bg-white shadow-sm border-b">
+                    <div class="flex items-center justify-between px-6 py-4">
+                        <div class="flex items-center space-x-4">
+                            <button onclick="toggleSidebar()" class="lg:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100">
+                                <i data-lucide="menu" class="w-5 h-5"></i>
+                            </button>
+                            <h2 class="text-xl font-semibold text-gray-800" id="pageTitle">Beranda</h2>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <button class="p-2 rounded-lg text-gray-600 hover:bg-gray-100 relative">
+                                <i data-lucide="bell" class="w-5 h-5"></i>
+                                <span class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
+                            </button>
+                        </div>
+                    </div>
+                </header>
+
+                <!-- Page Content -->
+                <main class="p-6">
+                    <!-- Beranda Page -->
+                    <div id="berandaPage" class="page-content space-y-6">
+                        <!-- Welcome Section -->
+                        <div class="bg-white rounded-xl shadow-sm p-8">
+                            <div class="flex items-center space-x-6">
+                                <div class="w-20 h-20 gradient-bg rounded-xl flex items-center justify-center">
+                                    <i data-lucide="school" class="text-white w-10 h-10"></i>
+                                </div>
+                                <div>
+                                    <h1 class="text-3xl font-bold text-gray-800">Selamat Datang di SISPIN</h1>
+                                    <p class="text-lg text-gray-600 mt-2">Sistem Informasi Sekolah Pintar - SMA Negeri 20 Medan</p>
+                                    <p class="text-gray-500 mt-2 italic">"Menjadi sekolah unggulan yang mencetak lulusan berkarakter, kolaboratif, serta memajukan kearifan lokal"</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Statistics Cards -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                            <div class="bg-white rounded-xl shadow-sm p-6 card-hover">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-500">Siswa Kelas X</p>
+                                        <p class="text-3xl font-bold text-gray-900 mt-2" id="siswaKelasX">0</p>
+                                    </div>
+                                    <div class="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="graduation-cap" class="text-white w-6 h-6"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-xl shadow-sm p-6 card-hover">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-500">Siswa Kelas XI</p>
+                                        <p class="text-3xl font-bold text-gray-900 mt-2" id="siswaKelasXI">0</p>
+                                    </div>
+                                    <div class="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="graduation-cap" class="text-white w-6 h-6"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-xl shadow-sm p-6 card-hover">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-500">Siswa Kelas XII</p>
+                                        <p class="text-3xl font-bold text-gray-900 mt-2" id="siswaKelasXII">0</p>
+                                    </div>
+                                    <div class="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="graduation-cap" class="text-white w-6 h-6"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-xl shadow-sm p-6 card-hover">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-500">Total Guru</p>
+                                        <p class="text-3xl font-bold text-gray-900 mt-2" id="totalGuru">0</p>
+                                    </div>
+                                    <div class="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="users" class="text-white w-6 h-6"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-xl shadow-sm p-6 card-hover">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-500">Rombel (Kelas)</p>
+                                        <p class="text-3xl font-bold text-gray-900 mt-2" id="totalRombel">0</p>
+                                    </div>
+                                    <div class="w-12 h-12 bg-indigo-500 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="home" class="text-white w-6 h-6"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Total Summary Card -->
+                        <div class="gradient-bg rounded-xl shadow-sm p-6 text-white">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h3 class="text-2xl font-bold">Total Siswa SMA Negeri 20 Medan</h3>
+                                    <p class="text-blue-100 mt-1">Keseluruhan siswa aktif tahun ajaran 2024/2025</p>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-4xl font-bold" id="totalSiswa">0</div>
+                                    <div class="text-blue-100 text-sm">Siswa Aktif</div>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-blue-400">
+                                <div class="text-center">
+                                    <div class="text-xl font-semibold" id="summaryKelasX">0</div>
+                                    <div class="text-blue-100 text-sm">Kelas X</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-xl font-semibold" id="summaryKelasXI">0</div>
+                                    <div class="text-blue-100 text-sm">Kelas XI</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-xl font-semibold" id="summaryKelasXII">0</div>
+                                    <div class="text-blue-100 text-sm">Kelas XII</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Kokurikuler Page -->
+                    <div id="kokurikulerPage" class="page-content hidden space-y-6">
+                        <!-- Header -->
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+                            <div>
+                                <h2 class="text-2xl font-bold text-gray-800">Perencanaan Kokurikuler</h2>
+                                <p class="text-gray-600 mt-1" id="kokurikulerSubtitle">Melihat kegiatan kokurikuler dan kebiasaan siswa yang telah disetujui</p>
+                            </div>
+                            <div id="kokurikulerActions" style="display: none;">
+                                <button onclick="showAddKegiatanModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+                                    <i data-lucide="plus" class="w-5 h-5"></i>
+                                    <span>Tambah Kegiatan</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Tabs -->
+                        <div class="bg-white rounded-xl shadow-sm">
+                            <div class="flex border-b border-gray-200">
+                                <button onclick="showKokurikulerTab('kegiatan')" class="kokurikuler-tab flex items-center px-6 py-4 text-sm font-medium border-b-2 transition-colors border-blue-500 text-blue-600">
+                                    <i data-lucide="activity" class="w-5 h-5 mr-2"></i>
+                                    Kegiatan Kokurikuler
+                                </button>
+                                <button onclick="showKokurikulerTab('kebiasaan')" class="kokurikuler-tab flex items-center px-6 py-4 text-sm font-medium border-b-2 transition-colors border-transparent text-gray-500 hover:text-gray-700">
+                                    <i data-lucide="clipboard-list" class="w-5 h-5 mr-2"></i>
+                                    Tujuh Kebiasaan Anak Indonesia Hebat
+                                </button>
+                            </div>
+
+                            <!-- Kegiatan Tab Content -->
+                            <div id="kegiatanTab" class="tab-content p-6">
+                                <div class="flex justify-between items-center mb-6">
+                                    <h3 class="text-lg font-semibold text-gray-800" id="kegiatanTitle">Kegiatan Kokurikuler (Disetujui)</h3>
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="kegiatanList">
+                                    <!-- Kegiatan cards will be populated by JavaScript -->
+                                </div>
+                            </div>
+
+                            <!-- Kebiasaan Tab Content -->
+                            <div id="kebiasaanTab" class="tab-content hidden p-6">
+                                <!-- Info Card -->
+                                <div class="kebiasaan-card rounded-xl shadow-sm p-6 text-white mb-6">
+                                    <h3 class="text-xl font-bold mb-2">Tujuh Kebiasaan Anak Indonesia Hebat</h3>
+                                    <p class="text-green-100">Program pembiasaan untuk membentuk karakter siswa yang unggul dan berkarakter Indonesia</p>
+                                </div>
+
+                                <!-- Date and Class Selector -->
+                                <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal</label>
+                                            <input type="date" id="kebiasaanDate" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Kelas</label>
+                                            <select id="kebiasaanKelas" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                                                <option value="">Pilih Kelas</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Kebiasaan Cards -->
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6" id="kebiasaanCards">
+                                    <!-- Kebiasaan cards will be populated by JavaScript -->
+                                </div>
+
+                                <!-- Student List Preview -->
+                                <div class="bg-white rounded-xl shadow-sm p-6">
+                                    <h3 class="text-lg font-semibold text-gray-800 mb-4" id="studentListTitle">Daftar Siswa</h3>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-60 overflow-y-auto" id="studentList">
+                                        <!-- Student list will be populated by JavaScript -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RPP/Modul Ajar Page -->
+                    <div id="rppPage" class="page-content hidden space-y-6">
+                        <!-- Header -->
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+                            <div>
+                                <h2 class="text-2xl font-bold text-gray-800">Perencanaan Intrakurikuler</h2>
+                                <p class="text-gray-600 mt-1" id="rppSubtitle">Melihat Modul Ajar dan Rencana Pelaksanaan Pembelajaran yang telah disetujui</p>
+                            </div>
+                            <div id="rppActions" style="display: none;">
+                                <button onclick="showAddModulModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+                                    <i data-lucide="plus" class="w-5 h-5"></i>
+                                    <span>Buat Modul Ajar</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Filter and Search -->
+                        <div class="bg-white rounded-xl shadow-sm p-6">
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Mata Pelajaran</label>
+                                    <select id="filterMapel" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        <option value="">Semua Mata Pelajaran</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Kelas</label>
+                                    <select id="filterKelas" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        <option value="">Semua Kelas</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Guru</label>
+                                    <select id="filterGuru" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        <option value="">Semua Guru</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Cari Modul</label>
+                                    <input type="text" id="searchModul" placeholder="Cari judul modul..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Modul List -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="modulList">
+                            <!-- Modul cards will be populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Data Guru Wali Page -->
+                    <div id="waliPage" class="page-content hidden space-y-6">
+                        <!-- Header -->
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+                            <div>
+                                <h2 class="text-2xl font-bold text-gray-800">Data Guru Wali</h2>
+                                <p class="text-gray-600 mt-1" id="waliSubtitle">Melihat data siswa wali kelas yang telah disetujui</p>
+                            </div>
+                            <div id="waliActions" style="display: none;">
+                                <button onclick="showAddSiswaModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+                                    <i data-lucide="plus" class="w-5 h-5"></i>
+                                    <span>Tambah Siswa</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Quick Stats -->
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4" id="waliStats" style="display: none;">
+                            <div class="bg-white rounded-xl shadow-sm p-6 card-hover border-l-4 border-blue-500">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-500">Total Siswa</p>
+                                        <p class="text-2xl font-bold text-gray-900 mt-1" id="totalSiswaWali">0</p>
+                                    </div>
+                                    <div class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="users" class="text-white w-5 h-5"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-xl shadow-sm p-6 card-hover border-l-4 border-green-500">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-500">Hadir Hari Ini</p>
+                                        <p class="text-2xl font-bold text-gray-900 mt-1" id="hadirHariIni">0</p>
+                                    </div>
+                                    <div class="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="check-circle" class="text-white w-5 h-5"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-xl shadow-sm p-6 card-hover border-l-4 border-orange-500">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-500">Perlu Perhatian</p>
+                                        <p class="text-2xl font-bold text-gray-900 mt-1" id="perluPerhatian">0</p>
+                                    </div>
+                                    <div class="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="alert-triangle" class="text-white w-5 h-5"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-xl shadow-sm p-6 card-hover border-l-4 border-purple-500">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-500">Prestasi Bulan Ini</p>
+                                        <p class="text-2xl font-bold text-gray-900 mt-1" id="prestasiBulan">0</p>
+                                    </div>
+                                    <div class="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="trophy" class="text-white w-5 h-5"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Filter and Search -->
+                        <div class="bg-white rounded-xl shadow-sm p-6">
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Guru Wali</label>
+                                    <select id="filterGuruWali" onchange="loadSiswaWali()" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        <option value="">Semua Guru Wali</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Kelas</label>
+                                    <select id="filterKelasWali" onchange="loadSiswaWali()" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        <option value="">Semua Kelas</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal</label>
+                                    <input type="date" id="filterTanggalWali" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Cari Siswa</label>
+                                    <input type="text" id="searchSiswa" onkeyup="searchSiswaWali()" placeholder="Cari nama siswa..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tabs -->
+                        <div class="bg-white rounded-xl shadow-sm">
+                            <div class="flex border-b border-gray-200">
+                                <button onclick="showWaliTab('daftar')" class="wali-tab flex items-center px-6 py-4 text-sm font-medium border-b-2 transition-colors border-blue-500 text-blue-600">
+                                    <i data-lucide="users" class="w-5 h-5 mr-2"></i>
+                                    Daftar Siswa
+                                </button>
+                                <button onclick="showWaliTab('kehadiran')" class="wali-tab flex items-center px-6 py-4 text-sm font-medium border-b-2 transition-colors border-transparent text-gray-500 hover:text-gray-700" id="kehadiranTabBtn" style="display: none;">
+                                    <i data-lucide="check-square" class="w-5 h-5 mr-2"></i>
+                                    Input Kehadiran
+                                </button>
+                                <button onclick="showWaliTab('perilaku')" class="wali-tab flex items-center px-6 py-4 text-sm font-medium border-b-2 transition-colors border-transparent text-gray-500 hover:text-gray-700" id="perilakuTabBtn" style="display: none;">
+                                    <i data-lucide="clipboard-list" class="w-5 h-5 mr-2"></i>
+                                    Catatan Perilaku & Karakter
+                                </button>
+                                <button onclick="showWaliTab('rekap')" class="wali-tab flex items-center px-6 py-4 text-sm font-medium border-b-2 transition-colors border-transparent text-gray-500 hover:text-gray-700">
+                                    <i data-lucide="bar-chart-3" class="w-5 h-5 mr-2"></i>
+                                    Rekap Kehadiran
+                                </button>
+                            </div>
+
+                            <!-- Daftar Siswa Tab -->
+                            <div id="daftarTab" class="tab-content p-6">
+                                <div class="flex justify-between items-center mb-6">
+                                    <h3 class="text-lg font-semibold text-gray-800" id="daftarSiswaTitle">Daftar Siswa (Disetujui)</h3>
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="siswaWaliList">
+                                    <!-- Siswa cards will be populated by JavaScript -->
+                                </div>
+                            </div>
+
+                            <!-- Input Kehadiran Tab -->
+                            <div id="kehadiranTab" class="tab-content hidden p-6">
+                                <div class="bg-green-50 rounded-lg p-6 mb-6">
+                                    <h3 class="text-lg font-semibold text-green-800 mb-4 flex items-center">
+                                        <i data-lucide="check-square" class="w-5 h-5 mr-2"></i>
+                                        Input Kehadiran Harian
+                                    </h3>
+                                    
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal</label>
+                                            <input type="date" id="tanggalKehadiran" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Kelas</label>
+                                            <select id="kelasKehadiran" onchange="loadKehadiranSiswa()" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                                                <option value="">Pilih Kelas</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    <div id="kehadiranSiswaList" class="hidden">
+                                        <!-- Kehadiran table will be populated by JavaScript -->
+                                    </div>
+                                    
+                                    <button onclick="simpanKehadiran()" class="mt-4 bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition-colors">
+                                        Simpan Kehadiran
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Catatan Perilaku Tab -->
+                            <div id="perilakuTab" class="tab-content hidden p-6">
+                                <div class="flex justify-between items-center mb-6">
+                                    <h3 class="text-lg font-semibold text-gray-800">Catatan Perilaku, Kedisiplinan, dan Karakter</h3>
+                                    <button onclick="showAddCatatanModal()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+                                        <i data-lucide="plus" class="w-5 h-5"></i>
+                                        <span>Tambah Catatan</span>
+                                    </button>
+                                </div>
+
+                                <div class="space-y-4" id="catatanPerilakuList">
+                                    <!-- Catatan cards will be populated by JavaScript -->
+                                </div>
+                            </div>
+
+                            <!-- Rekap Kehadiran Tab -->
+                            <div id="rekapTab" class="tab-content hidden p-6">
+                                <div class="bg-purple-50 rounded-lg p-6 mb-6">
+                                    <h3 class="text-lg font-semibold text-purple-800 mb-4 flex items-center">
+                                        <i data-lucide="bar-chart-3" class="w-5 h-5 mr-2"></i>
+                                        Rekap Kehadiran Mingguan & Bulanan
+                                    </h3>
+                                    
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Periode</label>
+                                            <select id="periodeRekap" onchange="loadRekapKehadiran()" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                                                <option value="minggu">Minggu Ini</option>
+                                                <option value="bulan">Bulan Ini</option>
+                                                <option value="semester">Semester Ini</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Kelas</label>
+                                            <select id="kelasRekap" onchange="loadRekapKehadiran()" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                                                <option value="">Semua Kelas</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    <div id="rekapKehadiranContent">
+                                        <!-- Rekap content will be populated by JavaScript -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Jurnal & Supervisi Page -->
+                    <div id="jurnalPage" class="page-content hidden space-y-6">
+                        <!-- Header -->
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+                            <div>
+                                <h2 class="text-2xl font-bold text-gray-800">Jurnal & Supervisi</h2>
+                                <p class="text-gray-600 mt-1" id="jurnalSubtitle">Melihat jurnal mengajar dan supervisi pembelajaran yang telah disetujui</p>
+                            </div>
+                            <div id="jurnalActions" style="display: none;">
+                                <button onclick="showAddJurnalModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+                                    <i data-lucide="plus" class="w-5 h-5"></i>
+                                    <span>Tambah Jurnal</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Filter and Search -->
+                        <div class="bg-white rounded-xl shadow-sm p-6">
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Mata Pelajaran</label>
+                                    <select id="filterMapelJurnal" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        <option value="">Semua Mata Pelajaran</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Kelas</label>
+                                    <select id="filterKelasJurnal" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        <option value="">Semua Kelas</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Guru</label>
+                                    <select id="filterGuruJurnal" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        <option value="">Semua Guru</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Cari Jurnal</label>
+                                    <input type="text" id="searchJurnal" placeholder="Cari judul jurnal..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Jurnal List -->
+                        <div class="space-y-4" id="jurnalList">
+                            <!-- Jurnal cards will be populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Bimbingan Konseling Page -->
+                    <div id="bimbinganPage" class="page-content hidden space-y-6">
+                        <!-- Header -->
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+                            <div>
+                                <h2 class="text-2xl font-bold text-gray-800">Bimbingan Konseling</h2>
+                                <p class="text-gray-600 mt-1" id="bimbinganSubtitle">Melihat layanan bimbingan dan konseling siswa yang telah disetujui</p>
+                            </div>
+                            <div id="bimbinganActions" style="display: none;">
+                                <button onclick="showAddBimbinganModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+                                    <i data-lucide="plus" class="w-5 h-5"></i>
+                                    <span>Tambah Layanan BK</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Filter and Search -->
+                        <div class="bg-white rounded-xl shadow-sm p-6">
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Jenis Layanan</label>
+                                    <select id="filterLayanan" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        <option value="">Semua Layanan</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Kelas</label>
+                                    <select id="filterKelasBk" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        <option value="">Semua Kelas</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Guru BK</label>
+                                    <select id="filterGuruBk" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        <option value="">Semua Guru BK</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Cari Layanan</label>
+                                    <input type="text" id="searchBk" placeholder="Cari layanan BK..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bimbingan List -->
+                        <div class="space-y-4" id="bimbinganList">
+                            <!-- Bimbingan cards will be populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Manajemen Data Page -->
+                    <div id="manajemenPage" class="page-content hidden space-y-6">
+                        <!-- Header -->
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+                            <div>
+                                <h2 class="text-2xl font-bold text-gray-800">Manajemen Data</h2>
+                                <p class="text-gray-600 mt-1">Kelola data master sistem SISPIN</p>
+                            </div>
+                        </div>
+
+                        <!-- Manajemen Cards -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div class="bg-white rounded-xl shadow-sm p-6 card-hover">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="users" class="text-white w-6 h-6"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-lg font-semibold text-gray-800">Manajemen Pengguna</h3>
+                                        <p class="text-gray-600 mt-1">Kelola data pengguna sistem</p>
+                                    </div>
+                                </div>
+                                <div class="mt-4 flex justify-end">
+                                    <button onclick="showPage('manajemen-pengguna')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                                        Kelola
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="bg-white rounded-xl shadow-sm p-6 card-hover">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="book-open" class="text-white w-6 h-6"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-lg font-semibold text-gray-800">Manajemen Mata Pelajaran</h3>
+                                        <p class="text-gray-600 mt-1">Kelola data mata pelajaran</p>
+                                    </div>
+                                </div>
+                                <div class="mt-4 flex justify-end">
+                                    <button onclick="showPage('manajemen-mapel')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors">
+                                        Kelola
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="bg-white rounded-xl shadow-sm p-6 card-hover">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="home" class="text-white w-6 h-6"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-lg font-semibold text-gray-800">Manajemen Kelas & Rombel</h3>
+                                        <p class="text-gray-600 mt-1">Kelola data kelas dan rombel</p>
+                                    </div>
+                                </div>
+                                <div class="mt-4 flex justify-end">
+                                    <button onclick="showPage('manajemen-kelas')" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors">
+                                        Kelola
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="bg-white rounded-xl shadow-sm p-6 card-hover">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="calendar" class="text-white w-6 h-6"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-lg font-semibold text-gray-800">Manajemen Tahun Ajaran</h3>
+                                        <p class="text-gray-600 mt-1">Kelola data tahun ajaran</p>
+                                    </div>
+                                </div>
+                                <div class="mt-4 flex justify-end">
+                                    <button onclick="showPage('manajemen-tahun')" class="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg transition-colors">
+                                        Kelola
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="bg-white rounded-xl shadow-sm p-6 card-hover">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-12 h-12 bg-red-500 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="activity" class="text-white w-6 h-6"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-lg font-semibold text-gray-800">Manajemen Ekstrakurikuler</h3>
+                                        <p class="text-gray-600 mt-1">Kelola data ekstrakurikuler</p>
+                                    </div>
+                                </div>
+                                <div class="mt-4 flex justify-end">
+                                    <button onclick="showPage('manajemen-ekstra')" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors">
+                                        Kelola
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="bg-white rounded-xl shadow-sm p-6 card-hover">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-12 h-12 bg-indigo-500 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="settings" class="text-white w-6 h-6"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-lg font-semibold text-gray-800">Pengaturan Sistem</h3>
+                                        <p class="text-gray-600 mt-1">Kelola pengaturan sistem</p>
+                                    </div>
+                                </div>
+                                <div class="mt-4 flex justify-end">
+                                    <button onclick="showPage('manajemen-pengaturan')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors">
+                                        Kelola
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Approval Page -->
+                    <div id="approvalPage" class="page-content hidden space-y-6">
+                        <!-- Header -->
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+                            <div>
+                                <h2 class="text-2xl font-bold text-gray-800">Approval Pengajuan</h2>
+                                <p class="text-gray-600 mt-1">Menyetujui atau menolak pengajuan dari Guru dan BK</p>
+                            </div>
+                        </div>
+
+                        <!-- Filter -->
+                        <div class="bg-white rounded-xl shadow-sm p-6">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Jenis Pengajuan</label>
+                                    <select id="filterJenisApproval" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        <option value="">Semua Jenis</option>
+                                        <option value="rpp">Modul Ajar</option>
+                                        <option value="kokurikuler">Kegiatan Kokurikuler</option>
+                                        <option value="jurnal">Jurnal & Supervisi</option>
+                                        <option value="bimbingan">Bimbingan Konseling</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                                    <select id="filterStatusApproval" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        <option value="">Semua Status</option>
+                                        <option value="pending">Menunggu Approval</option>
+                                        <option value="approved">Disetujui</option>
+                                        <option value="rejected">Ditolak</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Cari</label>
+                                    <input type="text" id="searchApproval" placeholder="Cari pengajuan..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Daftar Pengajuan -->
+                        <div class="space-y-4" id="approvalList">
+                            <!-- Pengajuan cards will be populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Manajemen Pengguna Page -->
+                    <div id="manajemen-penggunaPage" class="page-content hidden space-y-6">
+                        <!-- Header -->
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+                            <div>
+                                <h2 class="text-2xl font-bold text-gray-800">Manajemen Pengguna</h2>
+                                <p class="text-gray-600 mt-1">Kelola data pengguna sistem SISPIN</p>
+                            </div>
+                            <button onclick="showAddUserModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+                                <i data-lucide="plus" class="w-5 h-5"></i>
+                                <span>Tambah Pengguna</span>
+                            </button>
+                        </div>
+
+                        <!-- Filter and Search -->
+                        <div class="bg-white rounded-xl shadow-sm p-6">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Role</label>
+                                    <select id="filterRoleUser" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        <option value="">Semua Role</option>
+                                        <option value="Admin">Admin</option>
+                                        <option value="Kepala Sekolah">Kepala Sekolah</option>
+                                        <option value="Guru">Guru</option>
+                                        <option value="BK">BK</option>
+                                        <option value="Siswa/Orang Tua">Siswa/Orang Tua</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                                    <select id="filterStatusUser" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        <option value="">Semua Status</option>
+                                        <option value="active">Aktif</option>
+                                        <option value="inactive">Nonaktif</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Cari Pengguna</label>
+                                    <input type="text" id="searchUser" placeholder="Cari nama atau email..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- User List -->
+                        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200" id="userList">
+                                    <!-- User rows will be populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Manajemen Mata Pelajaran Page -->
+                    <div id="manajemen-mapelPage" class="page-content hidden space-y-6">
+                        <!-- Header -->
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+                            <div>
+                                <h2 class="text-2xl font-bold text-gray-800">Manajemen Mata Pelajaran</h2>
+                                <p class="text-gray-600 mt-1">Kelola data mata pelajaran</p>
+                            </div>
+                            <button onclick="showAddMapelModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+                                <i data-lucide="plus" class="w-5 h-5"></i>
+                                <span>Tambah Mata Pelajaran</span>
+                            </button>
+                        </div>
+
+                        <!-- Mapel List -->
+                        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kode</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Mata Pelajaran</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kelompok</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200" id="mapelList">
+                                    <!-- Mapel rows will be populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Manajemen Kelas Page -->
+                    <div id="manajemen-kelasPage" class="page-content hidden space-y-6">
+                        <!-- Header -->
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+                            <div>
+                                <h2 class="text-2xl font-bold text-gray-800">Manajemen Kelas & Rombel</h2>
+                                <p class="text-gray-600 mt-1">Kelola data kelas dan rombel</p>
+                            </div>
+                            <button onclick="showAddKelasModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+                                <i data-lucide="plus" class="w-5 h-5"></i>
+                                <span>Tambah Kelas</span>
+                            </button>
+                        </div>
+
+                        <!-- Kelas List -->
+                        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kelas</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tingkat</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Wali Kelas</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jumlah Siswa</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200" id="kelasList">
+                                    <!-- Kelas rows will be populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Manajemen Tahun Ajaran Page -->
+                    <div id="manajemen-tahunPage" class="page-content hidden space-y-6">
+                        <!-- Header -->
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+                            <div>
+                                <h2 class="text-2xl font-bold text-gray-800">Manajemen Tahun Ajaran</h2>
+                                <p class="text-gray-600 mt-1">Kelola data tahun ajaran</p>
+                            </div>
+                            <button onclick="showAddTahunModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+                                <i data-lucide="plus" class="w-5 h-5"></i>
+                                <span>Tambah Tahun Ajaran</span>
+                            </button>
+                        </div>
+
+                        <!-- Tahun Ajaran List -->
+                        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tahun Ajaran</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Semester</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal Mulai</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal Selesai</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200" id="tahunList">
+                                    <!-- Tahun rows will be populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Manajemen Ekstrakurikuler Page -->
+                    <div id="manajemen-ekstraPage" class="page-content hidden space-y-6">
+                        <!-- Header -->
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+                            <div>
+                                <h2 class="text-2xl font-bold text-gray-800">Manajemen Ekstrakurikuler</h2>
+                                <p class="text-gray-600 mt-1">Kelola data ekstrakurikuler</p>
+                            </div>
+                            <button onclick="showAddEkstraModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+                                <i data-lucide="plus" class="w-5 h-5"></i>
+                                <span>Tambah Ekstrakurikuler</span>
+                            </button>
+                        </div>
+
+                        <!-- Ekstrakurikuler List -->
+                        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pembina</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hari</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Waktu</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200" id="ekstraList">
+                                    <!-- Ekstrakurikuler rows will be populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Manajemen Pengaturan Page -->
+                    <div id="manajemen-pengaturanPage" class="page-content hidden space-y-6">
+                        <!-- Header -->
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-800">Pengaturan Sistem</h2>
+                            <p class="text-gray-600 mt-1">Kelola pengaturan sistem</p>
+                        </div>
+
+                        <!-- Pengaturan Form -->
+                        <div class="bg-white rounded-xl shadow-sm p-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Nama Sekolah</label>
+                                    <input type="text" id="namaSekolah" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" value="SMA Negeri 20 Medan">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Alamat Sekolah</label>
+                                    <input type="text" id="alamatSekolah" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" value="Jl. Guru Patimpus No. 20, Medan">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Telp Sekolah</label>
+                                    <input type="text" id="telpSekolah" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" value="(061) 123456">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Email Sekolah</label>
+                                    <input type="email" id="emailSekolah" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" value="info@sman20medan.sch.id">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Tahun Ajaran Aktif</label>
+                                    <select id="tahunAjaranAktif" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        <option value="2024/2025">2024/2025</option>
+                                        <option value="2023/2024">2023/2024</option>
+                                        <option value="2022/2023">2022/2023</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Semester Aktif</label>
+                                    <select id="semesterAktif" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        <option value="1">Semester 1</option>
+                                        <option value="2">Semester 2</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mt-6 flex justify-end">
+                                <button onclick="simpanPengaturan()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors">
+                                    Simpan Pengaturan
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals will be added here -->
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Supabase configuration
+        const supabaseUrl = 'https://your-supabase-url.supabase.co';
+        const supabaseKey = 'your-supabase-anon-key';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        // Global variables
+        let currentUser = null;
+        let currentRole = null;
+
+        // Login form handler
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const role = document.getElementById('roleSelect').value;
+            const email = document.getElementById('emailInput').value;
+            const password = document.getElementById('passwordInput').value;
+            
+            try {
+                // For demo purposes, we'll use a simple login without actual authentication
+                // In production, you would use Supabase auth
+                /*
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password,
+                });
+                
+                if (error) throw error;
+                
+                currentUser = data.user;
+                */
+                
+                // For demo, we'll just set the current user and role
+                currentUser = { email: email };
+                currentRole = role;
+                
+                // Get user profile from Supabase
+                const { data: profile, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('email', email)
+                    .single();
+                
+                if (profileError && profileError.code !== 'PGRST116') {
+                    console.error('Error fetching profile:', profileError);
+                }
+                
+                // Simpan data pengguna di localStorage
+                localStorage.setItem('userRole', role);
+                localStorage.setItem('userEmail', email);
+                
+                // Tampilkan dashboard
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('dashboard').classList.remove('hidden');
+                
+                // Update info pengguna di sidebar
+                document.getElementById('userName').textContent = profile ? profile.name : email;
+                document.getElementById('userRole').textContent = role;
+                
+                // Inisialisasi menu berdasarkan role
+                initializeMenu(role);
+                
+                // Load halaman beranda
+                showPage('beranda');
+                
+                // Load data for beranda
+                loadBerandaData();
+                
+            } catch (error) {
+                console.error('Login error:', error);
+                showNotification('Login gagal. Periksa email dan password Anda.', 'error');
+            }
+        });
+
+        // Fungsi untuk menginisialisasi menu berdasarkan role
+        function initializeMenu(role) {
+            // Sembunyikan semua menu terlebih dahulu
+            const menuItems = document.querySelectorAll('.menu-item');
+            menuItems.forEach(item => {
+                item.style.display = 'none';
+            });
+            
+            // Tampilkan menu berdasarkan role
+            switch(role) {
+                case 'Admin':
+                    // Admin bisa akses semua menu
+                    menuItems.forEach(item => {
+                        item.style.display = 'flex';
+                    });
+                    break;
+                case 'Kepala Sekolah':
+                    // Kepala Sekolah hanya bisa akses menu tertentu
+                    document.querySelector('[onclick="showPage(\'beranda\')"]').style.display = 'flex';
+                    document.querySelector('[onclick="showPage(\'approval\')"]').style.display = 'flex';
+                    break;
+                case 'Guru':
+                    // Guru bisa akses intra, kokurikuler, wali, jurnal
+                    document.querySelector('[onclick="showPage(\'beranda\')"]').style.display = 'flex';
+                    document.querySelector('[onclick="showPage(\'rpp\')"]').style.display = 'flex';
+                    document.querySelector('[onclick="showPage(\'kokurikuler\')"]').style.display = 'flex';
+                    document.querySelector('[onclick="showPage(\'wali\')"]').style.display = 'flex';
+                    document.querySelector('[onclick="showPage(\'jurnal\')"]').style.display = 'flex';
+                    break;
+                case 'BK':
+                    // BK bisa akses intra, kokurikuler, wali, jurnal, dan bimbingan
+                    document.querySelector('[onclick="showPage(\'beranda\')"]').style.display = 'flex';
+                    document.querySelector('[onclick="showPage(\'rpp\')"]').style.display = 'flex';
+                    document.querySelector('[onclick="showPage(\'kokurikuler\')"]').style.display = 'flex';
+                    document.querySelector('[onclick="showPage(\'wali\')"]').style.display = 'flex';
+                    document.querySelector('[onclick="showPage(\'jurnal\')"]').style.display = 'flex';
+                    document.querySelector('[onclick="showPage(\'bimbingan\')"]').style.display = 'flex';
+                    break;
+                case 'Siswa/Orang Tua':
+                    // Siswa dan Orang Tua bisa akses beranda, intra, kokurikuler, wali, jurnal, dan bimbingan
+                    document.querySelector('[onclick="showPage(\'beranda\')"]').style.display = 'flex';
+                    document.querySelector('[onclick="showPage(\'rpp\')"]').style.display = 'flex';
+                    document.querySelector('[onclick="showPage(\'kokurikuler\')"]').style.display = 'flex';
+                    document.querySelector('[onclick="showPage(\'wali\')"]').style.display = 'flex';
+                    document.querySelector('[onclick="showPage(\'jurnal\')"]').style.display = 'flex';
+                    document.querySelector('[onclick="showPage(\'bimbingan\')"]').style.display = 'flex';
+                    break;
+            }
+        }
+
+        // Fungsi untuk menampilkan halaman
+        function showPage(pageId) {
+            // Sembunyikan semua halaman
+            const pages = document.querySelectorAll('.page-content');
+            pages.forEach(page => {
+                page.classList.add('hidden');
+            });
+            
+            // Reset menu style
+            const menuItems = document.querySelectorAll('.menu-item');
+            menuItems.forEach(item => {
+                item.classList.remove('bg-blue-50', 'text-blue-600', 'border-r-4', 'border-blue-600');
+                item.classList.add('text-gray-700');
+            });
+            
+            // Tampilkan halaman yang dipilih
+            const selectedPage = document.getElementById(pageId + 'Page');
+            if (selectedPage) {
+                selectedPage.classList.remove('hidden');
+                selectedPage.classList.add('fade-in');
+            }
+            
+            // Highlight menu yang aktif
+            const activeMenu = document.querySelector(`[onclick="showPage('${pageId}')"]`);
+            if (activeMenu) {
+                activeMenu.classList.remove('text-gray-700');
+                activeMenu.classList.add('bg-blue-50', 'text-blue-600', 'border-r-4', 'border-blue-600');
+            }
+            
+            // Update judul halaman
+            const pageTitle = document.getElementById('pageTitle');
+            switch(pageId) {
+                case 'beranda':
+                    pageTitle.textContent = 'Beranda';
+                    break;
+                case 'rpp':
+                    pageTitle.textContent = 'Perencanaan Intrakurikuler';
+                    break;
+                case 'kokurikuler':
+                    pageTitle.textContent = 'Perencanaan Kokurikuler';
+                    break;
+                case 'wali':
+                    pageTitle.textContent = 'Data Guru Wali';
+                    break;
+                case 'jurnal':
+                    pageTitle.textContent = 'Jurnal & Supervisi';
+                    break;
+                case 'bimbingan':
+                    pageTitle.textContent = 'Bimbingan Konseling';
+                    break;
+                case 'manajemen':
+                    pageTitle.textContent = 'Manajemen Data';
+                    break;
+                case 'manajemen-pengguna':
+                    pageTitle.textContent = 'Manajemen Pengguna';
+                    break;
+                case 'manajemen-mapel':
+                    pageTitle.textContent = 'Manajemen Mata Pelajaran';
+                    break;
+                case 'manajemen-kelas':
+                    pageTitle.textContent = 'Manajemen Kelas & Rombel';
+                    break;
+                case 'manajemen-tahun':
+                    pageTitle.textContent = 'Manajemen Tahun Ajaran';
+                    break;
+                case 'manajemen-ekstra':
+                    pageTitle.textContent = 'Manajemen Ekstrakurikuler';
+                    break;
+                case 'manajemen-pengaturan':
+                    pageTitle.textContent = 'Pengaturan Sistem';
+                    break;
+                case 'approval':
+                    pageTitle.textContent = 'Approval Pengajuan';
+                    break;
+            }
+            
+            // Load data berdasarkan halaman dan role
+            loadDataForPage(pageId, currentRole);
+        }
+
+        // Fungsi untuk memuat data berdasarkan halaman dan role
+        function loadDataForPage(pageId, role) {
+            switch(pageId) {
+                case 'rpp':
+                    loadModulAjar(role);
+                    break;
+                case 'kokurikuler':
+                    loadKokurikuler(role);
+                    break;
+                case 'wali':
+                    loadWali(role);
+                    break;
+                case 'jurnal':
+                    loadJurnal(role);
+                    break;
+                case 'bimbingan':
+                    loadBimbingan(role);
+                    break;
+                case 'manajemen':
+                    // No specific data to load for manajemen
+                    break;
+                case 'manajemen-pengguna':
+                    loadUsers();
+                    break;
+                case 'manajemen-mapel':
+                    loadMapel();
+                    break;
+                case 'manajemen-kelas':
+                    loadKelas();
+                    break;
+                case 'manajemen-tahun':
+                    loadTahunAjaran();
+                    break;
+                case 'manajemen-ekstra':
+                    loadEkstrakurikuler();
+                    break;
+                case 'manajemen-pengaturan':
+                    loadPengaturan();
+                    break;
+                case 'approval':
+                    loadApproval(role);
+                    break;
+            }
+        }
+
+        // Fungsi untuk memuat data beranda
+        async function loadBerandaData() {
+            try {
+                // Get statistics data from Supabase
+                const { data: siswaData, error: siswaError } = await supabase
+                    .from('siswa')
+                    .select('kelas');
+                
+                if (siswaError) throw siswaError;
+                
+                // Count students by class
+                const kelasX = siswaData.filter(s => s.kelas.startsWith('X')).length;
+                const kelasXI = siswaData.filter(s => s.kelas.startsWith('XI')).length;
+                const kelasXII = siswaData.filter(s => s.kelas.startsWith('XII')).length;
+                const totalSiswa = siswaData.length;
+                
+                // Update UI
+                document.getElementById('siswaKelasX').textContent = kelasX;
+                document.getElementById('siswaKelasXI').textContent = kelasXI;
+                document.getElementById('siswaKelasXII').textContent = kelasXII;
+                document.getElementById('totalSiswa').textContent = totalSiswa;
+                document.getElementById('summaryKelasX').textContent = kelasX;
+                document.getElementById('summaryKelasXI').textContent = kelasXI;
+                document.getElementById('summaryKelasXII').textContent = kelasXII;
+                
+                // Get teachers count
+                const { data: guruData, error: guruError } = await supabase
+                    .from('profiles')
+                    .select('id', { count: 'exact' })
+                    .eq('role', 'Guru');
+                
+                if (guruError) throw guruError;
+                
+                document.getElementById('totalGuru').textContent = guruData.length;
+                
+                // Get classes count
+                const { data: kelasData, error: kelasError } = await supabase
+                    .from('kelas')
+                    .select('id', { count: 'exact' });
+                
+                if (kelasError) throw kelasError;
+                
+                document.getElementById('totalRombel').textContent = kelasData.length;
+                
+            } catch (error) {
+                console.error('Error loading beranda data:', error);
+                showNotification('Gagal memuat data beranda', 'error');
+            }
+        }
+
+        // Fungsi untuk memuat data modul ajar
+        async function loadModulAjar(role) {
+            try {
+                let query = supabase
+                    .from('modul_ajar')
+                    .select(`
+                        *,
+                        profiles(name),
+                        mata_pelajaran(nama),
+                        kelas(nama)
+                    `);
+                
+                // Filter data berdasarkan role
+                if (role === 'Guru' || role === 'BK') {
+                    query = query.eq('created_by', currentUser.email);
+                } else if (role === 'Siswa/Orang Tua') {
+                    query = query.eq('status', 'approved');
+                }
+                
+                const { data: modulList, error } = await query;
+                
+                if (error) throw error;
+                
+                // Tampilkan data di halaman
+                displayModulAjar(modulList, role);
+                
+                // Load filter options
+                await loadFilterOptions();
+                
+            } catch (error) {
+                console.error('Error loading modul ajar:', error);
+                showNotification('Gagal memuat data modul ajar', 'error');
+            }
+        }
+
+        // Fungsi untuk menampilkan data modul ajar
+        function displayModulAjar(modulList, role) {
+            const container = document.getElementById('modulList');
+            container.innerHTML = '';
+            
+            if (modulList.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-8">Tidak ada data modul ajar</p>';
+                return;
+            }
+            
+            modulList.forEach(modul => {
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-xl shadow-sm p-6 card-hover';
+                
+                let statusClass = '';
+                let statusText = '';
+                
+                switch(modul.status) {
+                    case 'draft':
+                        statusClass = 'bg-gray-100 text-gray-800';
+                        statusText = 'Draft';
+                        break;
+                    case 'review':
+                        statusClass = 'bg-yellow-100 text-yellow-800';
+                        statusText = 'Review';
+                        break;
+                    case 'approved':
+                        statusClass = 'bg-green-100 text-green-800';
+                        statusText = 'Disetujui';
+                        break;
+                }
+                
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="text-lg font-semibold text-gray-800">${modul.judul}</h3>
+                        ${role !== 'Siswa/Orang Tua' ? `<span class="px-2 py-1 text-xs rounded-full ${statusClass}">${statusText}</span>` : ''}
+                    </div>
+                    <p class="text-gray-600 mb-4">${modul.deskripsi}</p>
+                    <div class="flex justify-between items-center text-sm text-gray-500">
+                        <span>${modul.mata_pelajaran?.nama || modul.mapel} - ${modul.kelas?.nama || modul.kelas}</span>
+                        <span>${formatDate(modul.created_at)}</span>
+                    </div>
+                    <div class="mt-4 flex justify-end space-x-2">
+                        <button onclick="viewModulDetail('${modul.id}')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                            Lihat Detail
+                        </button>
+                        ${role === 'Guru' || role === 'BK' ? `
+                            ${modul.status === 'draft' ? `
+                                <button onclick="submitModulForReview('${modul.id}')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors">
+                                    Ajukan Review
+                                </button>
+                            ` : ''}
+                        ` : ''}
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+
+        // Fungsi untuk memuat data kokurikuler
+        async function loadKokurikuler(role) {
+            try {
+                let query = supabase
+                    .from('kegiatan_kokurikuler')
+                    .select(`
+                        *,
+                        profiles(name),
+                        ekstrakurikuler(nama)
+                    `);
+                
+                // Filter data berdasarkan role
+                if (role === 'Guru' || role === 'BK') {
+                    query = query.eq('created_by', currentUser.email);
+                } else if (role === 'Siswa/Orang Tua') {
+                    query = query.eq('status', 'approved');
+                }
+                
+                const { data: kokurikulerList, error } = await query;
+                
+                if (error) throw error;
+                
+                // Tampilkan data di halaman
+                displayKokurikuler(kokurikulerList, role);
+                
+                // Load filter options
+                await loadKokurikulerFilterOptions();
+                
+            } catch (error) {
+                console.error('Error loading kokurikuler:', error);
+                showNotification('Gagal memuat data kokurikuler', 'error');
+            }
+        }
+
+        // Fungsi untuk menampilkan data kokurikuler
+        function displayKokurikuler(kokurikulerList, role) {
+            const container = document.getElementById('kegiatanList');
+            container.innerHTML = '';
+            
+            if (kokurikulerList.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-8">Tidak ada data kegiatan kokurikuler</p>';
+                return;
+            }
+            
+            kokurikulerList.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-xl shadow-sm p-6 card-hover';
+                
+                let statusClass = '';
+                let statusText = '';
+                
+                switch(item.status) {
+                    case 'draft':
+                        statusClass = 'bg-gray-100 text-gray-800';
+                        statusText = 'Draft';
+                        break;
+                    case 'review':
+                        statusClass = 'bg-yellow-100 text-yellow-800';
+                        statusText = 'Review';
+                        break;
+                    case 'approved':
+                        statusClass = 'bg-green-100 text-green-800';
+                        statusText = 'Disetujui';
+                        break;
+                }
+                
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="text-lg font-semibold text-gray-800">${item.judul}</h3>
+                        ${role !== 'Siswa/Orang Tua' ? `<span class="px-2 py-1 text-xs rounded-full ${statusClass}">${statusText}</span>` : ''}
+                    </div>
+                    <p class="text-gray-600 mb-4">${item.deskripsi}</p>
+                    <div class="flex justify-between items-center text-sm text-gray-500">
+                        <span>${item.ekstrakurikuler?.nama || item.jenis} - ${item.kelas}</span>
+                        <span>${formatDate(item.created_at)}</span>
+                    </div>
+                    <div class="mt-4 flex justify-end space-x-2">
+                        <button onclick="viewKokurikulerDetail('${item.id}')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                            Lihat Detail
+                        </button>
+                        ${role === 'Guru' || role === 'BK' ? `
+                            ${item.status === 'draft' ? `
+                                <button onclick="submitKokurikulerForReview('${item.id}')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors">
+                                    Ajukan Review
+                                </button>
+                            ` : ''}
+                        ` : ''}
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+
+        // Fungsi untuk memuat data wali
+        async function loadWali(role) {
+            try {
+                // Update page elements based on role
+                if (role === 'Siswa/Orang Tua') {
+                    document.getElementById('waliSubtitle').textContent = 'Melihat data siswa wali kelas yang telah disetujui';
+                    document.getElementById('daftarSiswaTitle').textContent = 'Daftar Siswa (Disetujui)';
+                    document.getElementById('waliActions').style.display = 'none';
+                    document.getElementById('waliStats').style.display = 'none';
+                    document.getElementById('kehadiranTabBtn').style.display = 'none';
+                    document.getElementById('perilakuTabBtn').style.display = 'none';
+                } else {
+                    document.getElementById('waliSubtitle').textContent = 'Kelola data siswa wali kelas';
+                    document.getElementById('daftarSiswaTitle').textContent = 'Daftar Siswa';
+                    document.getElementById('waliActions').style.display = 'flex';
+                    document.getElementById('waliStats').style.display = 'grid';
+                    document.getElementById('kehadiranTabBtn').style.display = 'flex';
+                    document.getElementById('perilakuTabBtn').style.display = 'flex';
+                }
+                
+                let query = supabase
+                    .from('siswa')
+                    .select(`
+                        *,
+                        profiles(name),
+                        kelas(nama)
+                    `);
+                
+                // Filter data berdasarkan role
+                if (role === 'Guru' || role === 'BK') {
+                    // For teachers, show students in their classes
+                    const { data: guruKelas, error: guruKelasError } = await supabase
+                        .from('kelas')
+                        .select('id')
+                        .eq('wali_kelas', currentUser.email);
+                    
+                    if (guruKelasError) throw guruKelasError;
+                    
+                    const kelasIds = guruKelas.map(k => k.id);
+                    query = query.in('kelas_id', kelasIds);
+                } else if (role === 'Siswa/Orang Tua') {
+                    // For students/parents, only show approved data
+                    query = query.eq('status', 'approved');
+                }
+                
+                const { data: siswaList, error } = await query;
+                
+                if (error) throw error;
+                
+                // Tampilkan data di halaman
+                displayWali(siswaList, role);
+                
+                // Load filter options
+                await loadWaliFilterOptions();
+                
+            } catch (error) {
+                console.error('Error loading wali data:', error);
+                showNotification('Gagal memuat data siswa', 'error');
+            }
+        }
+
+        // Fungsi untuk menampilkan data wali
+        function displayWali(siswaList, role) {
+            const container = document.getElementById('siswaWaliList');
+            container.innerHTML = '';
+            
+            if (siswaList.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-8">Tidak ada data siswa</p>';
+                return;
+            }
+            
+            siswaList.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-xl shadow-sm p-6 card-hover';
+                
+                let statusClass = '';
+                let statusText = '';
+                
+                switch(item.status) {
+                    case 'draft':
+                        statusClass = 'bg-gray-100 text-gray-800';
+                        statusText = 'Draft';
+                        break;
+                    case 'review':
+                        statusClass = 'bg-yellow-100 text-yellow-800';
+                        statusText = 'Review';
+                        break;
+                    case 'approved':
+                        statusClass = 'bg-green-100 text-green-800';
+                        statusText = 'Disetujui';
+                        break;
+                }
+                
+                card.innerHTML = `
+                    <div class="flex items-center space-x-4 mb-4">
+                        <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
+                            <i data-lucide="user" class="text-white w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800">${item.nama}</h3>
+                            <p class="text-sm text-gray-500">${item.nis} - ${item.kelas?.nama || item.kelas}</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <p class="text-sm text-gray-500">Guru Wali</p>
+                            <p class="font-medium">${item.profiles?.name || '-'}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">Status</p>
+                            ${role !== 'Siswa/Orang Tua' ? `<span class="px-2 py-1 text-xs rounded-full ${statusClass}">${statusText}</span>` : '<span class="text-green-600">Aktif</span>'}
+                        </div>
+                    </div>
+                    <div class="mt-4 flex justify-end space-x-2">
+                        <button onclick="viewSiswaDetail('${item.id}')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                            Lihat Detail
+                        </button>
+                        ${role === 'Guru' || role === 'BK' ? `
+                            ${item.status === 'draft' ? `
+                                <button onclick="submitSiswaForReview('${item.id}')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors">
+                                    Ajukan Review
+                                </button>
+                            ` : ''}
+                        ` : ''}
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            });
+            
+            // Reinitialize Lucide icons for dynamically added content
+            lucide.createIcons();
+        }
+
+        // Fungsi untuk memuat data jurnal
+        async function loadJurnal(role) {
+            try {
+                // Update page elements based on role
+                if (role === 'Siswa/Orang Tua') {
+                    document.getElementById('jurnalSubtitle').textContent = 'Melihat jurnal mengajar dan supervisi pembelajaran yang telah disetujui';
+                    document.getElementById('jurnalActions').style.display = 'none';
+                } else {
+                    document.getElementById('jurnalSubtitle').textContent = 'Kelola jurnal mengajar dan supervisi pembelajaran';
+                    document.getElementById('jurnalActions').style.display = 'flex';
+                }
+                
+                let query = supabase
+                    .from('jurnal')
+                    .select(`
+                        *,
+                        profiles(name),
+                        mata_pelajaran(nama),
+                        kelas(nama)
+                    `);
+                
+                // Filter data berdasarkan role
+                if (role === 'Guru' || role === 'BK') {
+                    query = query.eq('created_by', currentUser.email);
+                } else if (role === 'Siswa/Orang Tua') {
+                    query = query.eq('status', 'approved');
+                }
+                
+                const { data: jurnalList, error } = await query;
+                
+                if (error) throw error;
+                
+                // Tampilkan data di halaman
+                displayJurnal(jurnalList, role);
+                
+                // Load filter options
+                await loadJurnalFilterOptions();
+                
+            } catch (error) {
+                console.error('Error loading jurnal:', error);
+                showNotification('Gagal memuat data jurnal', 'error');
+            }
+        }
+
+        // Fungsi untuk menampilkan data jurnal
+        function displayJurnal(jurnalList, role) {
+            const container = document.getElementById('jurnalList');
+            container.innerHTML = '';
+            
+            if (jurnalList.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-8">Tidak ada data jurnal</p>';
+                return;
+            }
+            
+            jurnalList.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-xl shadow-sm p-6 card-hover';
+                
+                let statusClass = '';
+                let statusText = '';
+                
+                switch(item.status) {
+                    case 'draft':
+                        statusClass = 'bg-gray-100 text-gray-800';
+                        statusText = 'Draft';
+                        break;
+                    case 'review':
+                        statusClass = 'bg-yellow-100 text-yellow-800';
+                        statusText = 'Review';
+                        break;
+                    case 'approved':
+                        statusClass = 'bg-green-100 text-green-800';
+                        statusText = 'Disetujui';
+                        break;
+                }
+                
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="text-lg font-semibold text-gray-800">${item.judul}</h3>
+                        ${role !== 'Siswa/Orang Tua' ? `<span class="px-2 py-1 text-xs rounded-full ${statusClass}">${statusText}</span>` : ''}
+                    </div>
+                    <p class="text-gray-600 mb-4">${item.deskripsi}</p>
+                    <div class="flex justify-between items-center text-sm text-gray-500">
+                        <span>${item.mata_pelajaran?.nama || item.mapel} - ${item.kelas?.nama || item.kelas}</span>
+                        <span>${formatDate(item.tanggal)}</span>
+                    </div>
+                    <div class="mt-4 flex justify-end space-x-2">
+                        <button onclick="viewJurnalDetail('${item.id}')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                            Lihat Detail
+                        </button>
+                        ${role === 'Guru' || role === 'BK' ? `
+                            ${item.status === 'draft' ? `
+                                <button onclick="submitJurnalForReview('${item.id}')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors">
+                                    Ajukan Review
+                                </button>
+                            ` : ''}
+                        ` : ''}
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+
+        // Fungsi untuk memuat data bimbingan
+        async function loadBimbingan(role) {
+            try {
+                // Update page elements based on role
+                if (role === 'Siswa/Orang Tua') {
+                    document.getElementById('bimbinganSubtitle').textContent = 'Melihat layanan bimbingan dan konseling siswa yang telah disetujui';
+                    document.getElementById('bimbinganActions').style.display = 'none';
+                } else {
+                    document.getElementById('bimbinganSubtitle').textContent = 'Kelola layanan bimbingan dan konseling siswa';
+                    document.getElementById('bimbinganActions').style.display = 'flex';
+                }
+                
+                let query = supabase
+                    .from('bimbingan_konseling')
+                    .select(`
+                        *,
+                        profiles(name),
+                        siswa(nama, nis, kelas_id),
+                        kelas(nama)
+                    `);
+                
+                // Filter data berdasarkan role
+                if (role === 'Guru' || role === 'BK') {
+                    query = query.eq('created_by', currentUser.email);
+                } else if (role === 'Siswa/Orang Tua') {
+                    query = query.eq('status', 'approved');
+                }
+                
+                const { data: bimbinganList, error } = await query;
+                
+                if (error) throw error;
+                
+                // Tampilkan data di halaman
+                displayBimbingan(bimbinganList, role);
+                
+                // Load filter options
+                await loadBimbinganFilterOptions();
+                
+            } catch (error) {
+                console.error('Error loading bimbingan:', error);
+                showNotification('Gagal memuat data bimbingan', 'error');
+            }
+        }
+
+        // Fungsi untuk menampilkan data bimbingan
+        function displayBimbingan(bimbinganList, role) {
+            const container = document.getElementById('bimbinganList');
+            container.innerHTML = '';
+            
+            if (bimbinganList.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-8">Tidak ada data bimbingan konseling</p>';
+                return;
+            }
+            
+            bimbinganList.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-xl shadow-sm p-6 card-hover';
+                
+                let statusClass = '';
+                let statusText = '';
+                
+                switch(item.status) {
+                    case 'draft':
+                        statusClass = 'bg-gray-100 text-gray-800';
+                        statusText = 'Draft';
+                        break;
+                    case 'review':
+                        statusClass = 'bg-yellow-100 text-yellow-800';
+                        statusText = 'Review';
+                        break;
+                    case 'approved':
+                        statusClass = 'bg-green-100 text-green-800';
+                        statusText = 'Disetujui';
+                        break;
+                }
+                
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="text-lg font-semibold text-gray-800">${item.judul}</h3>
+                        ${role !== 'Siswa/Orang Tua' ? `<span class="px-2 py-1 text-xs rounded-full ${statusClass}">${statusText}</span>` : ''}
+                    </div>
+                    <p class="text-gray-600 mb-4">${item.deskripsi}</p>
+                    <div class="flex justify-between items-center text-sm text-gray-500">
+                        <span>${item.jenis} - ${item.siswa?.nama || item.siswa}</span>
+                        <span>${formatDate(item.tanggal)}</span>
+                    </div>
+                    <div class="mt-4 flex justify-end space-x-2">
+                        <button onclick="viewBimbinganDetail('${item.id}')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                            Lihat Detail
+                        </button>
+                        ${role === 'Guru' || role === 'BK' ? `
+                            ${item.status === 'draft' ? `
+                                <button onclick="submitBimbinganForReview('${item.id}')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors">
+                                    Ajukan Review
+                                </button>
+                            ` : ''}
+                        ` : ''}
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+
+        // Fungsi untuk memuat data approval
+        async function loadApproval(role) {
+            if (role !== 'Kepala Sekolah') {
+                showPage('beranda');
+                return;
+            }
+            
+            try {
+                const { data: approvalList, error } = await supabase
+                    .from('approval_queue')
+                    .select(`
+                        *,
+                        profiles(name)
+                    `)
+                    .eq('status', 'pending');
+                
+                if (error) throw error;
+                
+                // Tampilkan data di halaman
+                displayApprovalList(approvalList);
+                
+            } catch (error) {
+                console.error('Error loading approval:', error);
+                showNotification('Gagal memuat data approval', 'error');
+            }
+        }
+
+        // Fungsi untuk menampilkan data approval
+        function displayApprovalList(approvalList) {
+            const container = document.getElementById('approvalList');
+            container.innerHTML = '';
+            
+            if (approvalList.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-8">Tidak ada pengajuan yang memerlukan approval</p>';
+                return;
+            }
+            
+            approvalList.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-xl shadow-sm p-6';
+                
+                let statusClass = '';
+                let statusText = '';
+                
+                switch(item.status) {
+                    case 'pending':
+                        statusClass = 'bg-yellow-100 text-yellow-800';
+                        statusText = 'Menunggu Approval';
+                        break;
+                    case 'approved':
+                        statusClass = 'bg-green-100 text-green-800';
+                        statusText = 'Disetujui';
+                        break;
+                    case 'rejected':
+                        statusClass = 'bg-red-100 text-red-800';
+                        statusText = 'Ditolak';
+                        break;
+                }
+                
+                card.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800">${item.judul}</h3>
+                            <p class="text-gray-600 mt-1">${item.deskripsi}</p>
+                            <div class="flex items-center mt-2">
+                                <span class="text-sm text-gray-500">Oleh: ${item.profiles?.name || item.author}</span>
+                                <span class="mx-2 text-gray-300">•</span>
+                                <span class="text-sm text-gray-500">${formatDate(item.created_at)}</span>
+                                <span class="mx-2 text-gray-300">•</span>
+                                <span class="px-2 py-1 text-xs rounded-full ${statusClass}">${statusText}</span>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2">
+                            ${item.status === 'pending' ? `
+                                <button onclick="approveItem('${item.id}')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors">
+                                    Setujui
+                                </button>
+                                <button onclick="showRejectModal('${item.id}')" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors">
+                                    Tolak
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                    ${item.status === 'rejected' && item.catatan_penolakan ? `
+                        <div class="mt-4 p-3 bg-red-50 rounded-lg">
+                            <p class="text-sm text-red-800"><strong>Catatan Penolakan:</strong> ${item.catatan_penolakan}</p>
+                        </div>
+                    ` : ''}
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+
+        // Fungsi untuk memuat data users
+        async function loadUsers() {
+            try {
+                const { data: users, error } = await supabase
+                    .from('profiles')
+                    .select('*');
+                
+                if (error) throw error;
+                
+                // Tampilkan data di halaman
+                displayUsers(users);
+                
+            } catch (error) {
+                console.error('Error loading users:', error);
+                showNotification('Gagal memuat data pengguna', 'error');
+            }
+        }
+
+        // Fungsi untuk menampilkan data users
+        function displayUsers(users) {
+            const container = document.getElementById('userList');
+            container.innerHTML = '';
+            
+            if (users.length === 0) {
+                container.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">Tidak ada data pengguna</td></tr>';
+                return;
+            }
+            
+            users.forEach(user => {
+                const row = document.createElement('tr');
+                
+                let statusClass = '';
+                let statusText = '';
+                
+                switch(user.status) {
+                    case 'active':
+                        statusClass = 'bg-green-100 text-green-800';
+                        statusText = 'Aktif';
+                        break;
+                    case 'inactive':
+                        statusClass = 'bg-red-100 text-red-800';
+                        statusText = 'Nonaktif';
+                        break;
+                }
+                
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 h-10 w-10">
+                                <div class="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center">
+                                    <i data-lucide="user" class="text-white w-5 h-5"></i>
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <div class="text-sm font-medium text-gray-900">${user.name}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">${user.email}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">${user.role}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">
+                            ${statusText}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button onclick="editUser('${user.id}')" class="text-indigo-600 hover:text-indigo-900 mr-3">Edit</button>
+                        <button onclick="deleteUser('${user.id}')" class="text-red-600 hover:text-red-900">Hapus</button>
+                    </td>
+                `;
+                
+                container.appendChild(row);
+            });
+            
+            // Reinitialize Lucide icons for dynamically added content
+            lucide.createIcons();
+        }
+
+        // Fungsi untuk memuat data mata pelajaran
+        async function loadMapel() {
+            try {
+                const { data: mapelList, error } = await supabase
+                    .from('mata_pelajaran')
+                    .select('*');
+                
+                if (error) throw error;
+                
+                // Tampilkan data di halaman
+                displayMapel(mapelList);
+                
+            } catch (error) {
+                console.error('Error loading mapel:', error);
+                showNotification('Gagal memuat data mata pelajaran', 'error');
+            }
+        }
+
+        // Fungsi untuk menampilkan data mata pelajaran
+        function displayMapel(mapelList) {
+            const container = document.getElementById('mapelList');
+            container.innerHTML = '';
+            
+            if (mapelList.length === 0) {
+                container.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">Tidak ada data mata pelajaran</td></tr>';
+                return;
+            }
+            
+            mapelList.forEach(mapel => {
+                const row = document.createElement('tr');
+                
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">${mapel.kode}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">${mapel.nama}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">${mapel.kelompok}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button onclick="editMapel('${mapel.id}')" class="text-indigo-600 hover:text-indigo-900 mr-3">Edit</button>
+                        <button onclick="deleteMapel('${mapel.id}')" class="text-red-600 hover:text-red-900">Hapus</button>
+                    </td>
+                `;
+                
+                container.appendChild(row);
+            });
+        }
+
+        // Fungsi untuk memuat data kelas
+        async function loadKelas() {
+            try {
+                const { data: kelasList, error } = await supabase
+                    .from('kelas')
+                    .select(`
+                        *,
+                        profiles(name),
+                        (select count(*) from siswa where siswa.kelas_id = kelas.id) as jumlah_siswa
+                    `);
+                
+                if (error) throw error;
+                
+                // Tampilkan data di halaman
+                displayKelas(kelasList);
+                
+            } catch (error) {
+                console.error('Error loading kelas:', error);
+                showNotification('Gagal memuat data kelas', 'error');
+            }
+        }
+
+        // Fungsi untuk menampilkan data kelas
+        function displayKelas(kelasList) {
+            const container = document.getElementById('kelasList');
+            container.innerHTML = '';
+            
+            if (kelasList.length === 0) {
+                container.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">Tidak ada data kelas</td></tr>';
+                return;
+            }
+            
+            kelasList.forEach(kelas => {
+                const row = document.createElement('tr');
+                
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">${kelas.nama}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">${kelas.tingkat}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">${kelas.profiles?.name || '-'}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">${kelas.jumlah_siswa || 0}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button onclick="editKelas('${kelas.id}')" class="text-indigo-600 hover:text-indigo-900 mr-3">Edit</button>
+                        <button onclick="deleteKelas('${kelas.id}')" class="text-red-600 hover:text-red-900">Hapus</button>
+                    </td>
+                `;
+                
+                container.appendChild(row);
+            });
+        }
+
+        // Fungsi untuk memuat data tahun ajaran
+        async function loadTahunAjaran() {
+            try {
+                const { data: tahunList, error } = await supabase
+                    .from('tahun_ajaran')
+                    .select('*');
+                
+                if (error) throw error;
+                
+                // Tampilkan data di halaman
+                displayTahunAjaran(tahunList);
+                
+            } catch (error) {
+                console.error('Error loading tahun ajaran:', error);
+                showNotification('Gagal memuat data tahun ajaran', 'error');
+            }
+        }
+
+        // Fungsi untuk menampilkan data tahun ajaran
+        function displayTahunAjaran(tahunList) {
+            const container = document.getElementById('tahunList');
+            container.innerHTML = '';
+            
+            if (tahunList.length === 0) {
+                container.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">Tidak ada data tahun ajaran</td></tr>';
+                return;
+            }
+            
+            tahunList.forEach(tahun => {
+                const row = document.createElement('tr');
+                
+                let statusClass = '';
+                let statusText = '';
+                
+                switch(tahun.status) {
+                    case 'active':
+                        statusClass = 'bg-green-100 text-green-800';
+                        statusText = 'Aktif';
+                        break;
+                    case 'inactive':
+                        statusClass = 'bg-gray-100 text-gray-800';
+                        statusText = 'Nonaktif';
+                        break;
+                }
+                
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">${tahun.tahun_ajaran}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">${tahun.semester}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">${formatDate(tahun.tanggal_mulai)}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">${formatDate(tahun.tanggal_selesai)}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">
+                            ${statusText}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button onclick="editTahun('${tahun.id}')" class="text-indigo-600 hover:text-indigo-900 mr-3">Edit</button>
+                        <button onclick="deleteTahun('${tahun.id}')" class="text-red-600 hover:text-red-900">Hapus</button>
+                    </td>
+                `;
+                
+                container.appendChild(row);
+            });
+        }
+
+        // Fungsi untuk memuat data ekstrakurikuler
+        async function loadEkstrakurikuler() {
+            try {
+                const { data: ekstraList, error } = await supabase
+                    .from('ekstrakurikuler')
+                    .select('*');
+                
+                if (error) throw error;
+                
+                // Tampilkan data di halaman
+                displayEkstrakurikuler(ekstraList);
+                
+            } catch (error) {
+                console.error('Error loading ekstrakurikuler:', error);
+                showNotification('Gagal memuat data ekstrakurikuler', 'error');
+            }
+        }
+
+        // Fungsi untuk menampilkan data ekstrakurikuler
+        function displayEkstrakurikuler(ekstraList) {
+            const container = document.getElementById('ekstraList');
+            container.innerHTML = '';
+            
+            if (ekstraList.length === 0) {
+                container.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">Tidak ada data ekstrakurikuler</td></tr>';
+                return;
+            }
+            
+            ekstraList.forEach(ekstra => {
+                const row = document.createElement('tr');
+                
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">${ekstra.nama}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">${ekstra.pembina}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">${ekstra.hari}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">${ekstra.waktu}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button onclick="editEkstra('${ekstra.id}')" class="text-indigo-600 hover:text-indigo-900 mr-3">Edit</button>
+                        <button onclick="deleteEkstra('${ekstra.id}')" class="text-red-600 hover:text-red-900">Hapus</button>
+                    </td>
+                `;
+                
+                container.appendChild(row);
+            });
+        }
+
+        // Fungsi untuk memuat data pengaturan
+        async function loadPengaturan() {
+            try {
+                const { data: pengaturan, error } = await supabase
+                    .from('pengaturan')
+                    .select('*')
+                    .single();
+                
+                if (error && error.code !== 'PGRST116') throw error;
+                
+                if (pengaturan) {
+                    document.getElementById('namaSekolah').value = pengaturan.nama_sekolah || '';
+                    document.getElementById('alamatSekolah').value = pengaturan.alamat_sekolah || '';
+                    document.getElementById('telpSekolah').value = pengaturan.telp_sekolah || '';
+                    document.getElementById('emailSekolah').value = pengaturan.email_sekolah || '';
+                    document.getElementById('tahunAjaranAktif').value = pengaturan.tahun_ajaran_aktif || '';
+                    document.getElementById('semesterAktif').value = pengaturan.semester_aktif || '';
+                }
+                
+            } catch (error) {
+                console.error('Error loading pengaturan:', error);
+                showNotification('Gagal memuat data pengaturan', 'error');
+            }
+        }
+
+        // Fungsi untuk memuat filter options
+        async function loadFilterOptions() {
+            try {
+                // Load mata pelajaran options
+                const { data: mapelOptions, error: mapelError } = await supabase
+                    .from('mata_pelajaran')
+                    .select('id, nama');
+                
+                if (mapelError) throw mapelError;
+                
+                const mapelSelect = document.getElementById('filterMapel');
+                mapelSelect.innerHTML = '<option value="">Semua Mata Pelajaran</option>';
+                
+                mapelOptions.forEach(mapel => {
+                    const option = document.createElement('option');
+                    option.value = mapel.id;
+                    option.textContent = mapel.nama;
+                    mapelSelect.appendChild(option);
+                });
+                
+                // Load kelas options
+                const { data: kelasOptions, error: kelasError } = await supabase
+                    .from('kelas')
+                    .select('id, nama');
+                
+                if (kelasError) throw kelasError;
+                
+                const kelasSelect = document.getElementById('filterKelas');
+                kelasSelect.innerHTML = '<option value="">Semua Kelas</option>';
+                
+                kelasOptions.forEach(kelas => {
+                    const option = document.createElement('option');
+                    option.value = kelas.id;
+                    option.textContent = kelas.nama;
+                    kelasSelect.appendChild(option);
+                });
+                
+                // Load guru options
+                const { data: guruOptions, error: guruError } = await supabase
+                    .from('profiles')
+                    .select('id, name')
+                    .eq('role', 'Guru');
+                
+                if (guruError) throw guruError;
+                
+                const guruSelect = document.getElementById('filterGuru');
+                guruSelect.innerHTML = '<option value="">Semua Guru</option>';
+                
+                guruOptions.forEach(guru => {
+                    const option = document.createElement('option');
+                    option.value = guru.id;
+                    option.textContent = guru.name;
+                    guruSelect.appendChild(option);
+                });
+                
+            } catch (error) {
+                console.error('Error loading filter options:', error);
+            }
+        }
+
+        // Fungsi untuk memuat filter options kokurikuler
+        async function loadKokurikulerFilterOptions() {
+            try {
+                // Load ekstrakurikuler options
+                const { data: ekstraOptions, error: ekstraError } = await supabase
+                    .from('ekstrakurikuler')
+                    .select('id, nama');
+                
+                if (ekstraError) throw ekstraError;
+                
+                const ekstraSelect = document.getElementById('filterEkstra');
+                ekstraSelect.innerHTML = '<option value="">Semua Ekstrakurikuler</option>';
+                
+                ekstraOptions.forEach(ekstra => {
+                    const option = document.createElement('option');
+                    option.value = ekstra.id;
+                    option.textContent = ekstra.nama;
+                    ekstraSelect.appendChild(option);
+                });
+                
+                // Load kelas options for kebiasaan
+                const { data: kelasOptions, error: kelasError } = await supabase
+                    .from('kelas')
+                    .select('id, nama');
+                
+                if (kelasError) throw kelasError;
+                
+                const kelasSelect = document.getElementById('kebiasaanKelas');
+                kelasSelect.innerHTML = '<option value="">Pilih Kelas</option>';
+                
+                kelasOptions.forEach(kelas => {
+                    const option = document.createElement('option');
+                    option.value = kelas.id;
+                    option.textContent = kelas.nama;
+                    kelasSelect.appendChild(option);
+                });
+                
+            } catch (error) {
+                console.error('Error loading kokurikuler filter options:', error);
+            }
+        }
+
+        // Fungsi untuk memuat filter options wali
+        async function loadWaliFilterOptions() {
+            try {
+                // Load guru wali options
+                const { data: guruOptions, error: guruError } = await supabase
+                    .from('profiles')
+                    .select('id, name')
+                    .in('role', ['Guru', 'BK']);
+                
+                if (guruError) throw guruError;
+                
+                const guruSelect = document.getElementById('filterGuruWali');
+                guruSelect.innerHTML = '<option value="">Semua Guru Wali</option>';
+                
+                guruOptions.forEach(guru => {
+                    const option = document.createElement('option');
+                    option.value = guru.id;
+                    option.textContent = guru.name;
+                    guruSelect.appendChild(option);
+                });
+                
+                // Load kelas options
+                const { data: kelasOptions, error: kelasError } = await supabase
+                    .from('kelas')
+                    .select('id, nama');
+                
+                if (kelasError) throw kelasError;
+                
+                const kelasSelect = document.getElementById('filterKelasWali');
+                kelasSelect.innerHTML = '<option value="">Semua Kelas</option>';
+                
+                kelasOptions.forEach(kelas => {
+                    const option = document.createElement('option');
+                    option.value = kelas.id;
+                    option.textContent = kelas.nama;
+                    kelasSelect.appendChild(option);
+                });
+                
+                // Load kelas options for kehadiran
+                const kehadiranSelect = document.getElementById('kelasKehadiran');
+                kehadiranSelect.innerHTML = '<option value="">Pilih Kelas</option>';
+                
+                kelasOptions.forEach(kelas => {
+                    const option = document.createElement('option');
+                    option.value = kelas.id;
+                    option.textContent = kelas.nama;
+                    kehadiranSelect.appendChild(option);
+                });
+                
+                // Load kelas options for rekap
+                const rekapSelect = document.getElementById('kelasRekap');
+                rekapSelect.innerHTML = '<option value="">Semua Kelas</option>';
+                
+                kelasOptions.forEach(kelas => {
+                    const option = document.createElement('option');
+                    option.value = kelas.id;
+                    option.textContent = kelas.nama;
+                    rekapSelect.appendChild(option);
+                });
+                
+            } catch (error) {
+                console.error('Error loading wali filter options:', error);
+            }
+        }
+
+        // Fungsi untuk memuat filter options jurnal
+        async function loadJurnalFilterOptions() {
+            try {
+                // Load mata pelajaran options
+                const { data: mapelOptions, error: mapelError } = await supabase
+                    .from('mata_pelajaran')
+                    .select('id, nama');
+                
+                if (mapelError) throw mapelError;
+                
+                const mapelSelect = document.getElementById('filterMapelJurnal');
+                mapelSelect.innerHTML = '<option value="">Semua Mata Pelajaran</option>';
+                
+                mapelOptions.forEach(mapel => {
+                    const option = document.createElement('option');
+                    option.value = mapel.id;
+                    option.textContent = mapel.nama;
+                    mapelSelect.appendChild(option);
+                });
+                
+                // Load kelas options
+                const { data: kelasOptions, error: kelasError } = await supabase
+                    .from('kelas')
+                    .select('id, nama');
+                
+                if (kelasError) throw kelasError;
+                
+                const kelasSelect = document.getElementById('filterKelasJurnal');
+                kelasSelect.innerHTML = '<option value="">Semua Kelas</option>';
+                
+                kelasOptions.forEach(kelas => {
+                    const option = document.createElement('option');
+                    option.value = kelas.id;
+                    option.textContent = kelas.nama;
+                    kelasSelect.appendChild(option);
+                });
+                
+                // Load guru options
+                const { data: guruOptions, error: guruError } = await supabase
+                    .from('profiles')
+                    .select('id, name')
+                    .eq('role', 'Guru');
+                
+                if (guruError) throw guruError;
+                
+                const guruSelect = document.getElementById('filterGuruJurnal');
+                guruSelect.innerHTML = '<option value="">Semua Guru</option>';
+                
+                guruOptions.forEach(guru => {
+                    const option = document.createElement('option');
+                    option.value = guru.id;
+                    option.textContent = guru.name;
+                    guruSelect.appendChild(option);
+                });
+                
+            } catch (error) {
+                console.error('Error loading jurnal filter options:', error);
+            }
+        }
+
+        // Fungsi untuk memuat filter options bimbingan
+        async function loadBimbinganFilterOptions() {
+            try {
+                // Load layanan options
+                const layananOptions = [
+                    { id: 'pribadi', nama: 'Bimbingan Pribadi' },
+                    { id: 'sosial', nama: 'Bimbingan Sosial' },
+                    { id: 'belajar', nama: 'Bimbingan Belajar' },
+                    { id: 'karir', nama: 'Bimbingan Karir' }
+                ];
+                
+                const layananSelect = document.getElementById('filterLayanan');
+                layananSelect.innerHTML = '<option value="">Semua Layanan</option>';
+                
+                layananOptions.forEach(layanan => {
+                    const option = document.createElement('option');
+                    option.value = layanan.id;
+                    option.textContent = layanan.nama;
+                    layananSelect.appendChild(option);
+                });
+                
+                // Load kelas options
+                const { data: kelasOptions, error: kelasError } = await supabase
+                    .from('kelas')
+                    .select('id, nama');
+                
+                if (kelasError) throw kelasError;
+                
+                const kelasSelect = document.getElementById('filterKelasBk');
+                kelasSelect.innerHTML = '<option value="">Semua Kelas</option>';
+                
+                kelasOptions.forEach(kelas => {
+                    const option = document.createElement('option');
+                    option.value = kelas.id;
+                    option.textContent = kelas.nama;
+                    kelasSelect.appendChild(option);
+                });
+                
+                // Load guru BK options
+                const { data: bkOptions, error: bkError } = await supabase
+                    .from('profiles')
+                    .select('id, name')
+                    .eq('role', 'BK');
+                
+                if (bkError) throw bkError;
+                
+                const bkSelect = document.getElementById('filterGuruBk');
+                bkSelect.innerHTML = '<option value="">Semua Guru BK</option>';
+                
+                bkOptions.forEach(bk => {
+                    const option = document.createElement('option');
+                    option.value = bk.id;
+                    option.textContent = bk.name;
+                    bkSelect.appendChild(option);
+                });
+                
+            } catch (error) {
+                console.error('Error loading bimbingan filter options:', error);
+            }
+        }
+
+        // Fungsi untuk menyetujui item
+        async function approveItem(itemId) {
+            try {
+                const { error } = await supabase
+                    .from('approval_queue')
+                    .update({ 
+                        status: 'approved',
+                        approved_by: currentUser.email,
+                        approved_at: new Date().toISOString()
+                    })
+                    .eq('id', itemId);
+                
+                if (error) throw error;
+                
+                // Update the original table
+                const { data: approval, error: fetchError } = await supabase
+                    .from('approval_queue')
+                    .select('*')
+                    .eq('id', itemId)
+                    .single();
+                
+                if (fetchError) throw fetchError;
+                
+                // Update the original record based on type
+                switch(approval.tipe) {
+                    case 'modul_ajar':
+                        await supabase
+                            .from('modul_ajar')
+                            .update({ status: 'approved' })
+                            .eq('id', approval.record_id);
+                        break;
+                    case 'kegiatan_kokurikuler':
+                        await supabase
+                            .from('kegiatan_kokurikuler')
+                            .update({ status: 'approved' })
+                            .eq('id', approval.record_id);
+                        break;
+                    case 'jurnal':
+                        await supabase
+                            .from('jurnal')
+                            .update({ status: 'approved' })
+                            .eq('id', approval.record_id);
+                        break;
+                    case 'bimbingan_konseling':
+                        await supabase
+                            .from('bimbingan_konseling')
+                            .update({ status: 'approved' })
+                            .eq('id', approval.record_id);
+                        break;
+                }
+                
+                // Refresh halaman
+                loadApproval('Kepala Sekolah');
+                
+                showNotification('Item berhasil disetujui');
+                
+            } catch (error) {
+                console.error('Error approving item:', error);
+                showNotification('Gagal menyetujui item', 'error');
+            }
+        }
+
+        // Fungsi untuk menampilkan modal penolakan
+        function showRejectModal(itemId) {
+            // Tampilkan modal untuk menambahkan catatan penolakan
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal-backdrop';
+            modal.innerHTML = `
+                <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Catatan Penolakan</h3>
+                    <textarea id="rejectionNote" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent" rows="4" placeholder="Masukkan catatan penolakan..."></textarea>
+                    <div class="flex justify-end space-x-3 mt-4">
+                        <button onclick="closeRejectModal()" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+                            Batal
+                        </button>
+                        <button onclick="rejectItem('${itemId}')" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors">
+                            Tolak
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+
+        // Fungsi untuk menutup modal penolakan
+        function closeRejectModal() {
+            const modal = document.querySelector('.fixed.inset-0.bg-black.bg-opacity-50');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        // Fungsi untuk menolak item
+        async function rejectItem(itemId) {
+            const note = document.getElementById('rejectionNote').value;
+            
+            try {
+                const { error } = await supabase
+                    .from('approval_queue')
+                    .update({ 
+                        status: 'rejected',
+                        rejected_by: currentUser.email,
+                        rejected_at: new Date().toISOString(),
+                        catatan_penolakan: note
+                    })
+                    .eq('id', itemId);
+                
+                if (error) throw error;
+                
+                // Update the original table
+                const { data: approval, error: fetchError } = await supabase
+                    .from('approval_queue')
+                    .select('*')
+                    .eq('id', itemId)
+                    .single();
+                
+                if (fetchError) throw fetchError;
+                
+                // Update the original record based on type
+                switch(approval.tipe) {
+                    case 'modul_ajar':
+                        await supabase
+                            .from('modul_ajar')
+                            .update({ status: 'rejected' })
+                            .eq('id', approval.record_id);
+                        break;
+                    case 'kegiatan_kokurikuler':
+                        await supabase
+                            .from('kegiatan_kokurikuler')
+                            .update({ status: 'rejected' })
+                            .eq('id', approval.record_id);
+                        break;
+                    case 'jurnal':
+                        await supabase
+                            .from('jurnal')
+                            .update({ status: 'rejected' })
+                            .eq('id', approval.record_id);
+                        break;
+                    case 'bimbingan_konseling':
+                        await supabase
+                            .from('bimbingan_konseling')
+                            .update({ status: 'rejected' })
+                            .eq('id', approval.record_id);
+                        break;
+                }
+                
+                // Tutup modal
+                closeRejectModal();
+                
+                // Refresh halaman
+                loadApproval('Kepala Sekolah');
+                
+                showNotification('Item berhasil ditolak');
+                
+            } catch (error) {
+                console.error('Error rejecting item:', error);
+                showNotification('Gagal menolak item', 'error');
+            }
+        }
+
+        // Fungsi untuk mengajukan modul untuk review
+        async function submitModulForReview(modulId) {
+            try {
+                // Get the modul data
+                const { data: modul, error: fetchError } = await supabase
+                    .from('modul_ajar')
+                    .select('*')
+                    .eq('id', modulId)
+                    .single();
+                
+                if (fetchError) throw fetchError;
+                
+                // Add to approval queue
+                const { error: insertError } = await supabase
+                    .from('approval_queue')
+                    .insert([{
+                        tipe: 'modul_ajar',
+                        record_id: modulId,
+                        judul: modul.judul,
+                        deskripsi: modul.deskripsi,
+                        created_by: modul.created_by,
+                        status: 'pending'
+                    }]);
+                
+                if (insertError) throw insertError;
+                
+                // Update modul status
+                const { error: updateError } = await supabase
+                    .from('modul_ajar')
+                    .update({ status: 'review' })
+                    .eq('id', modulId);
+                
+                if (updateError) throw updateError;
+                
+                // Refresh halaman
+                loadModulAjar(currentRole);
+                
+                showNotification('Modul berhasil diajukan untuk review');
+                
+            } catch (error) {
+                console.error('Error submitting modul for review:', error);
+                showNotification('Gagal mengajukan modul untuk review', 'error');
+            }
+        }
+
+        // Fungsi untuk mengajukan kokurikuler untuk review
+        async function submitKokurikulerForReview(itemId) {
+            try {
+                // Get the kokurikuler data
+                const { data: item, error: fetchError } = await supabase
+                    .from('kegiatan_kokurikuler')
+                    .select('*')
+                    .eq('id', itemId)
+                    .single();
+                
+                if (fetchError) throw fetchError;
+                
+                // Add to approval queue
+                const { error: insertError } = await supabase
+                    .from('approval_queue')
+                    .insert([{
+                        tipe: 'kegiatan_kokurikuler',
+                        record_id: itemId,
+                        judul: item.judul,
+                        deskripsi: item.deskripsi,
+                        created_by: item.created_by,
+                        status: 'pending'
+                    }]);
+                
+                if (insertError) throw insertError;
+                
+                // Update item status
+                const { error: updateError } = await supabase
+                    .from('kegiatan_kokurikuler')
+                    .update({ status: 'review' })
+                    .eq('id', itemId);
+                
+                if (updateError) throw updateError;
+                
+                // Refresh halaman
+                loadKokurikuler(currentRole);
+                
+                showNotification('Kegiatan berhasil diajukan untuk review');
+                
+            } catch (error) {
+                console.error('Error submitting kokurikuler for review:', error);
+                showNotification('Gagal mengajukan kegiatan untuk review', 'error');
+            }
+        }
+
+        // Fungsi untuk mengajukan siswa untuk review
+        async function submitSiswaForReview(siswaId) {
+            try {
+                // Get the siswa data
+                const { data: siswa, error: fetchError } = await supabase
+                    .from('siswa')
+                    .select('*')
+                    .eq('id', siswaId)
+                    .single();
+                
+                if (fetchError) throw fetchError;
+                
+                // Add to approval queue
+                const { error: insertError } = await supabase
+                    .from('approval_queue')
+                    .insert([{
+                        tipe: 'siswa',
+                        record_id: siswaId,
+                        judul: `Data Siswa: ${siswa.nama}`,
+                        deskripsi: `NIS: ${siswa.nis}, Kelas: ${siswa.kelas}`,
+                        created_by: siswa.created_by,
+                        status: 'pending'
+                    }]);
+                
+                if (insertError) throw insertError;
+                
+                // Update siswa status
+                const { error: updateError } = await supabase
+                    .from('siswa')
+                    .update({ status: 'review' })
+                    .eq('id', siswaId);
+                
+                if (updateError) throw updateError;
+                
+                // Refresh halaman
+                loadWali(currentRole);
+                
+                showNotification('Data siswa berhasil diajukan untuk review');
+                
+            } catch (error) {
+                console.error('Error submitting siswa for review:', error);
+                showNotification('Gagal mengajukan data siswa untuk review', 'error');
+            }
+        }
+
+        // Fungsi untuk mengajukan jurnal untuk review
+        async function submitJurnalForReview(jurnalId) {
+            try {
+                // Get the jurnal data
+                const { data: jurnal, error: fetchError } = await supabase
+                    .from('jurnal')
+                    .select('*')
+                    .eq('id', jurnalId)
+                    .single();
+                
+                if (fetchError) throw fetchError;
+                
+                // Add to approval queue
+                const { error: insertError } = await supabase
+                    .from('approval_queue')
+                    .insert([{
+                        tipe: 'jurnal',
+                        record_id: jurnalId,
+                        judul: jurnal.judul,
+                        deskripsi: jurnal.deskripsi,
+                        created_by: jurnal.created_by,
+                        status: 'pending'
+                    }]);
+                
+                if (insertError) throw insertError;
+                
+                // Update jurnal status
+                const { error: updateError } = await supabase
+                    .from('jurnal')
+                    .update({ status: 'review' })
+                    .eq('id', jurnalId);
+                
+                if (updateError) throw updateError;
+                
+                // Refresh halaman
+                loadJurnal(currentRole);
+                
+                showNotification('Jurnal berhasil diajukan untuk review');
+                
+            } catch (error) {
+                console.error('Error submitting jurnal for review:', error);
+                showNotification('Gagal mengajukan jurnal untuk review', 'error');
+            }
+        }
+
+        // Fungsi untuk mengajukan bimbingan untuk review
+        async function submitBimbinganForReview(bimbinganId) {
+            try {
+                // Get the bimbingan data
+                const { data: bimbingan, error: fetchError } = await supabase
+                    .from('bimbingan_konseling')
+                    .select('*')
+                    .eq('id', bimbinganId)
+                    .single();
+                
+                if (fetchError) throw fetchError;
+                
+                // Add to approval queue
+                const { error: insertError } = await supabase
+                    .from('approval_queue')
+                    .insert([{
+                        tipe: 'bimbingan_konseling',
+                        record_id: bimbinganId,
+                        judul: bimbingan.judul,
+                        deskripsi: bimbingan.deskripsi,
+                        created_by: bimbingan.created_by,
+                        status: 'pending'
+                    }]);
+                
+                if (insertError) throw insertError;
+                
+                // Update bimbingan status
+                const { error: updateError } = await supabase
+                    .from('bimbingan_konseling')
+                    .update({ status: 'review' })
+                    .eq('id', bimbinganId);
+                
+                if (updateError) throw updateError;
+                
+                // Refresh halaman
+                loadBimbingan(currentRole);
+                
+                showNotification('Layanan BK berhasil diajukan untuk review');
+                
+            } catch (error) {
+                console.error('Error submitting bimbingan for review:', error);
+                showNotification('Gagal mengajukan layanan BK untuk review', 'error');
+            }
+        }
+
+        // Fungsi untuk menyimpan pengaturan
+        async function simpanPengaturan() {
+            try {
+                const pengaturan = {
+                    nama_sekolah: document.getElementById('namaSekolah').value,
+                    alamat_sekolah: document.getElementById('alamatSekolah').value,
+                    telp_sekolah: document.getElementById('telpSekolah').value,
+                    email_sekolah: document.getElementById('emailSekolah').value,
+                    tahun_ajaran_aktif: document.getElementById('tahunAjaranAktif').value,
+                    semester_aktif: document.getElementById('semesterAktif').value,
+                    updated_at: new Date().toISOString()
+                };
+                
+                // Check if pengaturan exists
+                const { data: existing, error: fetchError } = await supabase
+                    .from('pengaturan')
+                    .select('id')
+                    .single();
+                
+                if (fetchError && fetchError.code !== 'PGRST116') throw fetchError;
+                
+                let result;
+                if (existing) {
+                    // Update existing
+                    result = await supabase
+                        .from('pengaturan')
+                        .update(pengaturan)
+                        .eq('id', existing.id);
+                } else {
+                    // Insert new
+                    result = await supabase
+                        .from('pengaturan')
+                        .insert([pengaturan]);
+                }
+                
+                if (result.error) throw result.error;
+                
+                showNotification('Pengaturan berhasil disimpan');
+                
+            } catch (error) {
+                console.error('Error saving pengaturan:', error);
+                showNotification('Gagal menyimpan pengaturan', 'error');
+            }
+        }
+
+        // Fungsi untuk menampilkan notifikasi
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 ${
+                type === 'success' ? 'bg-green-500' : 'bg-red-500'
+            } text-white`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Fungsi untuk format tanggal
+        function formatDate(dateString) {
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            return new Date(dateString).toLocaleDateString('id-ID', options);
+        }
+
+        // Fungsi untuk toggle sidebar
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('-translate-x-full');
+        }
+
+        // Fungsi logout
+        function logout() {
+            // In production, you would use Supabase auth sign out
+            // await supabase.auth.signOut();
+            
+            localStorage.removeItem('userRole');
+            localStorage.removeItem('userEmail');
+            currentUser = null;
+            currentRole = null;
+            
+            document.getElementById('dashboard').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
+        }
+
+        // Fungsi untuk menampilkan tab kokurikuler
+        function showKokurikulerTab(tabName) {
+            // Sembunyikan semua tab
+            const tabs = document.querySelectorAll('.kokurikuler-tab');
+            tabs.forEach(tab => {
+                tab.classList.remove('border-blue-500', 'text-blue-600');
+                tab.classList.add('border-transparent', 'text-gray-500');
+            });
+            
+            // Tampilkan tab yang dipilih
+            const activeTab = document.querySelector(`[onclick="showKokurikulerTab('${tabName}')"]`);
+            activeTab.classList.remove('border-transparent', 'text-gray-500');
+            activeTab.classList.add('border-blue-500', 'text-blue-600');
+            
+            // Sembunyikan semua konten tab
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => {
+                content.classList.add('hidden');
+            });
+            
+            // Tampilkan konten tab yang dipilih
+            document.getElementById(tabName + 'Tab').classList.remove('hidden');
+        }
+
+        // Fungsi untuk menampilkan tab wali
+        function showWaliTab(tabName) {
+            // Sembunyikan semua tab
+            const tabs = document.querySelectorAll('.wali-tab');
+            tabs.forEach(tab => {
+                tab.classList.remove('border-blue-500', 'text-blue-600');
+                tab.classList.add('border-transparent', 'text-gray-500');
+            });
+            
+            // Tampilkan tab yang dipilih
+            const activeTab = document.querySelector(`[onclick="showWaliTab('${tabName}')"]`);
+            activeTab.classList.remove('border-transparent', 'text-gray-500');
+            activeTab.classList.add('border-blue-500', 'text-blue-600');
+            
+            // Sembunyikan semua konten tab
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => {
+                content.classList.add('hidden');
+            });
+            
+            // Tampilkan konten tab yang dipilih
+            document.getElementById(tabName + 'Tab').classList.remove('hidden');
+        }
+
+        // Fungsi placeholder untuk modul lainnya
+        function viewModulDetail(modulId) {
+            // Implementasi view modul detail
+            console.log('View modul detail:', modulId);
+        }
+
+        function viewKokurikulerDetail(itemId) {
+            // Implementasi view kokurikuler detail
+            console.log('View kokurikuler detail:', itemId);
+        }
+
+        function viewSiswaDetail(siswaId) {
+            // Implementasi view siswa detail
+            console.log('View siswa detail:', siswaId);
+        }
+
+        function viewJurnalDetail(jurnalId) {
+            // Implementasi view jurnal detail
+            console.log('View jurnal detail:', jurnalId);
+        }
+
+        function viewBimbinganDetail(bimbinganId) {
+            // Implementasi view bimbingan detail
+            console.log('View bimbingan detail:', bimbinganId);
+        }
+
+        function editUser(userId) {
+            // Implementasi edit user
+            console.log('Edit user:', userId);
+        }
+
+        function deleteUser(userId) {
+            // Implementasi delete user
+            console.log('Delete user:', userId);
+        }
+
+        function editMapel(mapelId) {
+            // Implementasi edit mapel
+            console.log('Edit mapel:', mapelId);
+        }
+
+        function deleteMapel(mapelId) {
+            // Implementasi delete mapel
+            console.log('Delete mapel:', mapelId);
+        }
+
+        function editKelas(kelasId) {
+            // Implementasi edit kelas
+            console.log('Edit kelas:', kelasId);
+        }
+
+        function deleteKelas(kelasId) {
+            // Implementasi delete kelas
+            console.log('Delete kelas:', kelasId);
+        }
+
+        function editTahun(tahunId) {
+            // Implementasi edit tahun
+            console.log('Edit tahun:', tahunId);
+        }
+
+        function deleteTahun(tahunId) {
+            // Implementasi delete tahun
+            console.log('Delete tahun:', tahunId);
+        }
+
+        function editEkstra(ekstraId) {
+            // Implementasi edit ekstra
+            console.log('Edit ekstra:', ekstraId);
+        }
+
+        function deleteEkstra(ekstraId) {
+            // Implementasi delete ekstra
+            console.log('Delete ekstra:', ekstraId);
+        }
+
+        function showAddUserModal() {
+            // Implementasi modal tambah user
+            console.log('Show add user modal');
+        }
+
+        function showAddMapelModal() {
+            // Implementasi modal tambah mapel
+            console.log('Show add mapel modal');
+        }
+
+        function showAddKelasModal() {
+            // Implementasi modal tambah kelas
+            console.log('Show add kelas modal');
+        }
+
+        function showAddTahunModal() {
+            // Implementasi modal tambah tahun
+            console.log('Show add tahun modal');
+        }
+
+        function showAddEkstraModal() {
+            // Implementasi modal tambah ekstra
+            console.log('Show add ekstra modal');
+        }
+
+        function showAddKegiatanModal() {
+            // Implementasi modal tambah kegiatan
+            console.log('Show add kegiatan modal');
+        }
+
+        function showAddModulModal() {
+            // Implementasi modal tambah modul
+            console.log('Show add modul modal');
+        }
+
+        function showAddSiswaModal() {
+            // Implementasi modal tambah siswa
+            console.log('Show add siswa modal');
+        }
+
+        function showAddJurnalModal() {
+            // Implementasi modal tambah jurnal
+            console.log('Show add jurnal modal');
+        }
+
+        function showAddBimbinganModal() {
+            // Implementasi modal tambah bimbingan
+            console.log('Show add bimbingan modal');
+        }
+
+        function showAddCatatanModal() {
+            // Implementasi modal tambah catatan
+            console.log('Show add catatan modal');
+        }
+
+        function loadSiswaWali() {
+            // Implementasi load siswa wali
+            console.log('Load siswa wali');
+            loadWali(currentRole);
+        }
+
+        function loadKehadiranSiswa() {
+            // Implementasi load kehadiran siswa
+            console.log('Load kehadiran siswa');
+        }
+
+        function simpanKehadiran() {
+            // Implementasi simpan kehadiran
+            console.log('Simpan kehadiran');
+        }
+
+        function loadRekapKehadiran() {
+            // Implementasi load rekap kehadiran
+            console.log('Load rekap kehadiran');
+        }
+
+        function searchSiswaWali() {
+            // Implementasi search siswa wali
+            console.log('Search siswa wali');
+        }
+    </script>
+</body>
+</html>
